@@ -18,6 +18,7 @@ src-tauri/WixTools
 
 # Temporary files
 temp-icons/
+WhatTheNote.xcodeproj/
 
 # Editor directories and files
 .vscode/*

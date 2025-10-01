@@ -13,11 +13,15 @@ pub fn create_tray(app: &AppHandle) -> Result<(), String> {
         .build(app)
         .map_err(|e| format!("Failed to create preferences menu item: {}", e))?;
 
+    let check_updates_item = MenuItemBuilder::with_id("check-updates", "Check for Updates...")
+        .build(app)
+        .map_err(|e| format!("Failed to create check updates menu item: {}", e))?;
+
     let quit_item = MenuItemBuilder::with_id("quit", "Quit")
         .build(app)
         .map_err(|e| format!("Failed to create quit menu item: {}", e))?;
 
-    let menu = Menu::with_items(app, &[&toggle_item, &preferences_item, &quit_item])
+    let menu = Menu::with_items(app, &[&toggle_item, &preferences_item, &check_updates_item, &quit_item])
         .map_err(|e| format!("Failed to create menu: {}", e))?;
 
     let _tray = TrayIconBuilder::new()
@@ -39,6 +43,11 @@ fn menu_handler(app: &AppHandle, event: tauri::menu::MenuEvent) {
         "preferences" => {
             if let Err(e) = app.emit("open-preferences", ()) {
                 eprintln!("Failed to emit open-preferences event: {}", e);
+            }
+        }
+        "check-updates" => {
+            if let Err(e) = app.emit("check-updates", ()) {
+                eprintln!("Failed to emit check-updates event: {}", e);
             }
         }
         "quit" => {

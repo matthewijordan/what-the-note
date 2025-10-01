@@ -9,6 +9,7 @@ A minimal, always-accessible sticky note app for macOS.
 - **Always Accessible** - Quick access via keyboard shortcut (⌥⌘N) or hot corner hover
 - **Rich Text Formatting** - Bold, italic, headings, lists, task lists, code blocks, colors, and more
 - **Auto-Save** - Your notes are saved instantly as you type
+- **Auto-Update** - Automatically checks for new versions and updates with one click
 - **Customizable** - Adjust text size, auto-hide behavior, fade effects, and shortcuts
 - **Remembers Position** - Window opens where you last left it
 - **Click Away to Hide** - Automatically hides when you click elsewhere (configurable)

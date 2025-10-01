@@ -2,6 +2,7 @@ import { NoteService } from "./services/note-service";
 import { PreferencesService } from "./services/preferences-service";
 import { WindowService } from "./services/window-service";
 import { IdleDetector } from "./services/idle-detector";
+import { UpdateService } from "./services/update-service";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import type { Preferences } from "./types";
@@ -123,6 +124,11 @@ async function init() {
     }, 100);
   });
 
+  // Listen for update check events from tray menu
+  await listen("check-updates", () => {
+    UpdateService.checkForUpdates(false);
+  });
+
   // Set up idle detector
   updateIdleDetector();
 
@@ -130,6 +136,9 @@ async function init() {
   if (preferences.auto_focus) {
     editor.commands.focus();
   }
+
+  // Check for updates on startup (silently)
+  UpdateService.checkOnStartup();
 }
 
 function setupToolbar() {
