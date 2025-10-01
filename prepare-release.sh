@@ -136,7 +136,26 @@ cd ../../../../../..
 
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}Step 5: Creating latest.json template...${NC}"
+echo -e "${BLUE}Step 5: Signing the update package...${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+# Prompt for signing key password
+read -s -p "Enter private key password: " KEY_PASSWORD
+echo ""
+
+# Sign the zip file
+SIGNATURE=$(TAURI_PRIVATE_KEY_PATH="$HOME/.tauri/what-the-note.key" npx @tauri-apps/cli signer sign -p "$KEY_PASSWORD" "src-tauri/target/universal-apple-darwin/release/bundle/macos/What.The.Note.zip" 2>&1 | tail -3 | head -1)
+
+if [ -z "$SIGNATURE" ]; then
+  echo -e "${RED}✗ Failed to generate signature${NC}"
+  exit 1
+fi
+
+echo -e "${GREEN}✓ Signed update package${NC}"
+
+echo ""
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BLUE}Step 6: Creating latest.json template...${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
 CURRENT_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -148,9 +167,11 @@ cat > "src-tauri/target/universal-apple-darwin/release/bundle/latest.json" <<EOF
   "pub_date": "$CURRENT_DATE",
   "platforms": {
     "darwin-aarch64": {
+      "signature": "$SIGNATURE",
       "url": "https://github.com/matthewijordan/what-the-note/releases/download/v$NEW_VERSION/What.The.Note.zip"
     },
     "darwin-x86_64": {
+      "signature": "$SIGNATURE",
       "url": "https://github.com/matthewijordan/what-the-note/releases/download/v$NEW_VERSION/What.The.Note.zip"
     }
   }

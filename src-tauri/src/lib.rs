@@ -76,6 +76,14 @@ pub fn run() {
                 });
             }
 
+            // Listen for preferences window event
+            let app_handle_clone = app_handle.clone();
+            app.listen("open-preferences", move |_event| {
+                if let Err(e) = window::open_preferences_window(app_handle_clone.clone()) {
+                    eprintln!("Failed to open preferences window: {}", e);
+                }
+            });
+
             // Show window on launch if configured
             if prefs.show_on_launch {
                 if let Err(e) = window::show_window_command(app_handle.clone()) {
