@@ -365,6 +365,11 @@ function setupEventListeners() {
 
   // Window loses focus (blur) - always hide when clicking off
   window.addEventListener("blur", async () => {
+    // Don't hide if update dialogs are showing
+    if (UpdateService.isUpdateInProgress()) {
+      return;
+    }
+
     if (preferences.hide_on_blur) {
       windowLocked = false; // Reset lock when user clicks away
       await hideWindowInstant();
@@ -413,11 +418,11 @@ async function hideWindowInstant() {
 }
 
 function updateIdleDetector() {
-  // Only start idle timer if auto-hide is enabled, auto-focus is off, window not locked, and mouse not hovering
-  if (preferences.auto_hide_enabled && !preferences.auto_focus && !windowLocked && !isMouseOverWindow) {
+  // Only start idle timer if auto-hide is enabled, auto-focus is off, window not locked, mouse not hovering, and no update in progress
+  if (preferences.auto_hide_enabled && !preferences.auto_focus && !windowLocked && !isMouseOverWindow && !UpdateService.isUpdateInProgress()) {
     idleDetector.start(preferences.auto_hide_delay_ms, async () => {
-      // Double-check conditions before hiding
-      if (!windowLocked && !isMouseOverWindow) {
+      // Double-check conditions before hiding (including update check)
+      if (!windowLocked && !isMouseOverWindow && !UpdateService.isUpdateInProgress()) {
         await hideWindowWithFade();
       }
     });

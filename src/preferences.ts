@@ -1,6 +1,7 @@
 import { PreferencesService } from "./services/preferences-service";
 import type { Preferences } from "./types";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { getVersion } from '@tauri-apps/api/app';
 
 let form: HTMLFormElement;
 
@@ -21,6 +22,17 @@ async function init() {
 
   // Set up shortcut recording
   setupShortcutRecording();
+
+  // Load and display app version
+  try {
+    const version = await getVersion();
+    const versionElement = document.getElementById("app-version");
+    if (versionElement) {
+      versionElement.textContent = version;
+    }
+  } catch (error) {
+    console.error("Failed to get app version:", error);
+  }
 
   // Load current preferences
   try {

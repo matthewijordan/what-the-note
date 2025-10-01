@@ -4,6 +4,11 @@ import { relaunch } from '@tauri-apps/plugin-process';
 
 export class UpdateService {
   private static isChecking = false;
+  private static updateInProgress = false;
+
+  static isUpdateInProgress(): boolean {
+    return this.updateInProgress;
+  }
 
   static async checkForUpdates(silent: boolean = false): Promise<void> {
     if (this.isChecking) {
@@ -11,6 +16,7 @@ export class UpdateService {
     }
 
     this.isChecking = true;
+    this.updateInProgress = true;
 
     try {
       console.log('Checking for updates...');
@@ -27,23 +33,31 @@ export class UpdateService {
         );
 
         if (yes) {
-          await message('Downloading update...', {
-            title: 'Update',
-            kind: 'info',
-          });
+          console.log('Starting download and install...');
 
-          await update.downloadAndInstall();
+          try {
+            // Download and install happens in the background
+            await update.downloadAndInstall();
 
-          const relaunchNow = await ask(
-            'Update installed successfully! Restart now?',
-            {
-              title: 'Update Complete',
-              kind: 'info',
+            console.log('Download and install complete');
+
+            const relaunchNow = await ask(
+              'Update installed successfully! Restart now?',
+              {
+                title: 'Update Complete',
+                kind: 'info',
+              }
+            );
+
+            if (relaunchNow) {
+              await relaunch();
             }
-          );
-
-          if (relaunchNow) {
-            await relaunch();
+          } catch (downloadError) {
+            console.error('Download/install failed:', downloadError);
+            await message(`Failed to install update: ${downloadError}`, {
+              title: 'Update Error',
+              kind: 'error',
+            });
           }
         }
       } else if (!silent) {
@@ -65,6 +79,7 @@ export class UpdateService {
       }
     } finally {
       this.isChecking = false;
+      this.updateInProgress = false;
     }
   }
 
