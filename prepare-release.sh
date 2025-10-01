@@ -148,11 +148,9 @@ cat > "src-tauri/target/universal-apple-darwin/release/bundle/latest.json" <<EOF
   "pub_date": "$CURRENT_DATE",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "",
       "url": "https://github.com/matthewijordan/what-the-note/releases/download/v$NEW_VERSION/What.The.Note.zip"
     },
     "darwin-x86_64": {
-      "signature": "",
       "url": "https://github.com/matthewijordan/what-the-note/releases/download/v$NEW_VERSION/What.The.Note.zip"
     }
   }

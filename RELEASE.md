@@ -82,11 +82,9 @@ The build artifacts will be in `src-tauri/target/universal-apple-darwin/release/
      "pub_date": "2025-01-15T12:00:00Z",
      "platforms": {
        "darwin-aarch64": {
-         "signature": "",
          "url": "https://github.com/matthewijordan/what-the-note/releases/download/v1.0.0/What.The.Note.zip"
        },
        "darwin-x86_64": {
-         "signature": "",
          "url": "https://github.com/matthewijordan/what-the-note/releases/download/v1.0.0/What.The.Note.zip"
        }
      }

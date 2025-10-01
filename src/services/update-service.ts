@@ -1,6 +1,7 @@
 import { check } from '@tauri-apps/plugin-updater';
 import { ask, message } from '@tauri-apps/plugin-dialog';
 import { relaunch } from '@tauri-apps/plugin-process';
+import { invoke } from '@tauri-apps/api/core';
 
 export class UpdateService {
   private static isChecking = false;
@@ -24,6 +25,15 @@ export class UpdateService {
       console.log('Update check result:', update);
 
       if (update?.available) {
+        // Open preferences window first so dialogs appear there
+        try {
+          await invoke('open_preferences_window');
+          // Small delay to let preferences window open and focus
+          await new Promise(resolve => setTimeout(resolve, 300));
+        } catch (error) {
+          console.error('Failed to open preferences window:', error);
+        }
+
         const yes = await ask(
           `Version ${update.version} is available!\n\nCurrent version: ${update.currentVersion}\n\nWould you like to download and install it now?`,
           {
