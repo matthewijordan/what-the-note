@@ -21,6 +21,11 @@
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-is-registered",
+    "dialog:default",
+    "dialog:allow-ask",
+    "dialog:allow-message",
+    "process:default",
+    "process:allow-restart",
     "updater:default",
     "updater:allow-check",
     "updater:allow-download-and-install"

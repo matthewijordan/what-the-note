@@ -13,7 +13,9 @@ export class UpdateService {
     this.isChecking = true;
 
     try {
+      console.log('Checking for updates...');
       const update = await check();
+      console.log('Update check result:', update);
 
       if (update?.available) {
         const yes = await ask(
@@ -51,8 +53,11 @@ export class UpdateService {
         });
       }
     } catch (error) {
+      // Always log errors, even in silent mode
+      console.error('Failed to check for updates:', error);
+
+      // Only show dialog if not silent
       if (!silent) {
-        console.error('Failed to check for updates:', error);
         await message(`Failed to check for updates: ${error}`, {
           title: 'Update Error',
           kind: 'error',
