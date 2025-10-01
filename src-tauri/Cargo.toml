@@ -1,6 +1,6 @@
 [package]
 name = "what-the-note"
-version = "0.1.7"
+version = "0.1.8"
 description = "A minimal sticky note companion for macOS"
 authors = ["Matthew Jordan"]
 edition = "2021"
