@@ -1,7 +1,6 @@
 use tauri::{
     menu::{Menu, MenuItemBuilder},
-    tray::TrayIconBuilder,
-    AppHandle, Emitter,
+    AppHandle, Emitter, Manager,
 };
 
 pub fn create_tray(app: &AppHandle) -> Result<(), String> {
@@ -24,11 +23,14 @@ pub fn create_tray(app: &AppHandle) -> Result<(), String> {
     let menu = Menu::with_items(app, &[&toggle_item, &preferences_item, &check_updates_item, &quit_item])
         .map_err(|e| format!("Failed to create menu: {}", e))?;
 
-    let _tray = TrayIconBuilder::new()
-        .menu(&menu)
-        .on_menu_event(menu_handler)
-        .build(app)
-        .map_err(|e| format!("Failed to create tray icon: {}", e))?;
+    // Get the existing tray icon from config and set its menu
+    let tray = app.tray_by_id("main-tray")
+        .ok_or_else(|| "Failed to get tray icon".to_string())?;
+
+    tray.set_menu(Some(menu))
+        .map_err(|e| format!("Failed to set tray menu: {}", e))?;
+
+    tray.on_menu_event(menu_handler);
 
     Ok(())
 }
