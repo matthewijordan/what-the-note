@@ -101,6 +101,14 @@ else
 fi
 echo -e "${GREEN}✓ Updated package.json${NC}"
 
+# Update README.md download link
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  sed -i '' "s|What\.The\.Note_.*_universal\.dmg|What.The.Note_${NEW_VERSION}_universal.dmg|" README.md
+else
+  sed -i "s|What\.The\.Note_.*_universal\.dmg|What.The.Note_${NEW_VERSION}_universal.dmg|" README.md
+fi
+echo -e "${GREEN}✓ Updated README.md${NC}"
+
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${BLUE}Step 2: Installing dependencies...${NC}"

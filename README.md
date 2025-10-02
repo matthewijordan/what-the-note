@@ -4,6 +4,12 @@ A minimal, always-accessible sticky note app for macOS.
 
 ![What The Note](https://img.shields.io/badge/platform-macOS-lightgrey)
 
+## Download
+
+**[⬇️ Download Latest Release (DMG)](https://github.com/matthewijordan/what-the-note/releases/latest/download/What.The.Note_0.3.5_universal.dmg)**
+
+Or browse all releases [here](https://github.com/matthewijordan/what-the-note/releases).
+
 ## Features
 
 - **Always Accessible** - Quick access via keyboard shortcut (⌥⌘N) or hot corner hover
