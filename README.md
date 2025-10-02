@@ -6,7 +6,7 @@ A minimal, always-accessible sticky note app for macOS.
 
 ## Download
 
-**[⬇️ Download Latest Release (DMG)](https://github.com/matthewijordan/what-the-note/releases/latest/download/What.The.Note_1.1.0_universal.dmg)**
+**[⬇️ Download Latest Release (DMG)](https://github.com/matthewijordan/what-the-note/releases/latest/download/What.The.Note_1.1.1_universal.dmg)**
 
 Or browse all releases [here](https://github.com/matthewijordan/what-the-note/releases).
 

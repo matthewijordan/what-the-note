@@ -152,15 +152,37 @@ echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━�
 echo -e "${BLUE}Step 5: Signing the update package...${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
-# Prompt for signing key password
-read -s -p "Enter private key password: " KEY_PASSWORD
-echo ""
+# Sign with retry on password failure
+MAX_ATTEMPTS=3
+ATTEMPT=1
+SIGNATURE=""
 
-# Sign the tar.gz file
-SIGNATURE=$(TAURI_PRIVATE_KEY_PATH="$HOME/.tauri/what-the-note.key" npx @tauri-apps/cli signer sign -p "$KEY_PASSWORD" "src-tauri/target/universal-apple-darwin/release/bundle/macos/What.The.Note.app.tar.gz" 2>&1 | tail -3 | head -1)
+while [ $ATTEMPT -le $MAX_ATTEMPTS ] && [ -z "$SIGNATURE" ]; do
+  if [ $ATTEMPT -gt 1 ]; then
+    echo -e "${YELLOW}Incorrect password. Please try again (attempt $ATTEMPT of $MAX_ATTEMPTS)${NC}"
+  fi
+
+  read -s -p "Enter private key password: " KEY_PASSWORD
+  echo ""
+
+  # Sign the tar.gz file and capture full output
+  SIGN_OUTPUT=$(TAURI_PRIVATE_KEY_PATH="$HOME/.tauri/what-the-note.key" npx @tauri-apps/cli signer sign -p "$KEY_PASSWORD" "src-tauri/target/universal-apple-darwin/release/bundle/macos/What.The.Note.app.tar.gz" 2>&1)
+
+  # Check if signing succeeded
+  if echo "$SIGN_OUTPUT" | grep -q "Your file was signed successfully"; then
+    SIGNATURE=$(echo "$SIGN_OUTPUT" | tail -3 | head -1)
+  elif echo "$SIGN_OUTPUT" | grep -q "Wrong password"; then
+    # Wrong password, will retry
+    ATTEMPT=$((ATTEMPT + 1))
+  else
+    # Different error
+    echo -e "${RED}✗ Failed to sign: $SIGN_OUTPUT${NC}"
+    exit 1
+  fi
+done
 
 if [ -z "$SIGNATURE" ]; then
-  echo -e "${RED}✗ Failed to generate signature${NC}"
+  echo -e "${RED}✗ Failed to generate signature after $MAX_ATTEMPTS attempts${NC}"
   exit 1
 fi
 
