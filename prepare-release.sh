@@ -125,13 +125,13 @@ npm run build:release || {
 
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}Step 4: Creating zip file for auto-updater...${NC}"
+echo -e "${BLUE}Step 4: Creating tar.gz file for auto-updater...${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
 cd src-tauri/target/universal-apple-darwin/release/bundle/macos
-rm -f "What.The.Note.zip"
-zip -r "What.The.Note.zip" "What The Note.app" > /dev/null
-echo -e "${GREEN}✓ Created What.The.Note.zip${NC}"
+rm -f "What.The.Note.app.tar.gz"
+tar -czf "What.The.Note.app.tar.gz" "What The Note.app"
+echo -e "${GREEN}✓ Created What.The.Note.app.tar.gz${NC}"
 cd ../../../../../..
 
 echo ""
@@ -143,8 +143,8 @@ echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━�
 read -s -p "Enter private key password: " KEY_PASSWORD
 echo ""
 
-# Sign the zip file
-SIGNATURE=$(TAURI_PRIVATE_KEY_PATH="$HOME/.tauri/what-the-note.key" npx @tauri-apps/cli signer sign -p "$KEY_PASSWORD" "src-tauri/target/universal-apple-darwin/release/bundle/macos/What.The.Note.zip" 2>&1 | tail -3 | head -1)
+# Sign the tar.gz file
+SIGNATURE=$(TAURI_PRIVATE_KEY_PATH="$HOME/.tauri/what-the-note.key" npx @tauri-apps/cli signer sign -p "$KEY_PASSWORD" "src-tauri/target/universal-apple-darwin/release/bundle/macos/What.The.Note.app.tar.gz" 2>&1 | tail -3 | head -1)
 
 if [ -z "$SIGNATURE" ]; then
   echo -e "${RED}✗ Failed to generate signature${NC}"
@@ -168,11 +168,11 @@ cat > "src-tauri/target/universal-apple-darwin/release/bundle/latest.json" <<EOF
   "platforms": {
     "darwin-aarch64": {
       "signature": "$SIGNATURE",
-      "url": "https://github.com/matthewijordan/what-the-note/releases/download/v$NEW_VERSION/What.The.Note.zip"
+      "url": "https://github.com/matthewijordan/what-the-note/releases/download/v$NEW_VERSION/What.The.Note.app.tar.gz"
     },
     "darwin-x86_64": {
       "signature": "$SIGNATURE",
-      "url": "https://github.com/matthewijordan/what-the-note/releases/download/v$NEW_VERSION/What.The.Note.zip"
+      "url": "https://github.com/matthewijordan/what-the-note/releases/download/v$NEW_VERSION/What.The.Note.app.tar.gz"
     }
   }
 }
@@ -190,7 +190,7 @@ echo ""
 echo -e "${YELLOW}Release files are located at:${NC}"
 echo ""
 DMG_PATH="src-tauri/target/universal-apple-darwin/release/bundle/dmg/What.The.Note_${NEW_VERSION}_universal.dmg"
-ZIP_PATH="src-tauri/target/universal-apple-darwin/release/bundle/macos/What.The.Note.zip"
+TARGZ_PATH="src-tauri/target/universal-apple-darwin/release/bundle/macos/What.The.Note.app.tar.gz"
 JSON_PATH="src-tauri/target/universal-apple-darwin/release/bundle/latest.json"
 
 # Check if DMG exists with spaces, rename to dots
@@ -203,8 +203,8 @@ fi
 echo -e "  ${BLUE}DMG (for users):${NC}"
 echo -e "    ${DMG_PATH}"
 echo ""
-echo -e "  ${BLUE}ZIP (for auto-updater):${NC}"
-echo -e "    ${ZIP_PATH}"
+echo -e "  ${BLUE}TAR.GZ (for auto-updater):${NC}"
+echo -e "    ${TARGZ_PATH}"
 echo ""
 echo -e "  ${BLUE}Update manifest:${NC}"
 echo -e "    ${JSON_PATH}"
@@ -218,11 +218,11 @@ else
   echo -e "  ${RED}✗ DMG not found!${NC}"
 fi
 
-if [ -f "$ZIP_PATH" ]; then
-  ZIP_SIZE=$(du -h "$ZIP_PATH" | cut -f1)
-  echo -e "  ${GREEN}✓ ZIP exists (${ZIP_SIZE})${NC}"
+if [ -f "$TARGZ_PATH" ]; then
+  TARGZ_SIZE=$(du -h "$TARGZ_PATH" | cut -f1)
+  echo -e "  ${GREEN}✓ TAR.GZ exists (${TARGZ_SIZE})${NC}"
 else
-  echo -e "  ${RED}✗ ZIP not found!${NC}"
+  echo -e "  ${RED}✗ TAR.GZ not found!${NC}"
 fi
 
 echo ""
@@ -242,7 +242,7 @@ echo -e "     ${BLUE}https://github.com/matthewijordan/what-the-note/releases/ne
 echo ""
 echo -e "  4. Upload these 3 files to the release:"
 echo -e "     - What.The.Note_${NEW_VERSION}_universal.dmg"
-echo -e "     - What.The.Note.zip"
+echo -e "     - What.The.Note.app.tar.gz"
 echo -e "     - latest.json"
 echo ""
 echo -e "  5. Publish the release!"

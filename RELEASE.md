@@ -72,12 +72,12 @@ The build artifacts will be in `src-tauri/target/universal-apple-darwin/release/
 
    Upload these files from `src-tauri/target/universal-apple-darwin/release/bundle/`:
    - `dmg/What.The.Note_1.0.0_universal.dmg` (for users to download and install)
-   - `macos/What.The.Note.zip` (for auto-updater - create this by zipping the .app)
+   - `macos/What.The.Note.app.tar.gz` (for auto-updater - create this by compressing the .app)
 
-   Create the zip:
+   Create the tar.gz:
    ```bash
    cd src-tauri/target/universal-apple-darwin/release/bundle/macos
-   zip -r "What.The.Note.zip" "What The Note.app"
+   tar -czf "What.The.Note.app.tar.gz" "What The Note.app"
    cd ../../../../../..
    ```
 
@@ -96,11 +96,11 @@ The build artifacts will be in `src-tauri/target/universal-apple-darwin/release/
      "platforms": {
        "darwin-aarch64": {
          "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkK...",
-         "url": "https://github.com/matthewijordan/what-the-note/releases/download/v1.0.0/What.The.Note.zip"
+         "url": "https://github.com/matthewijordan/what-the-note/releases/download/v1.0.0/What.The.Note.app.tar.gz"
        },
        "darwin-x86_64": {
          "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkK...",
-         "url": "https://github.com/matthewijordan/what-the-note/releases/download/v1.0.0/What.The.Note.zip"
+         "url": "https://github.com/matthewijordan/what-the-note/releases/download/v1.0.0/What.The.Note.app.tar.gz"
        }
      }
    }
