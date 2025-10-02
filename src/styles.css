@@ -88,6 +88,22 @@ body[data-theme="minimal-dark"] {
   --button-hover: rgba(82, 82, 91, 1);
 }
 
+/* Sticky Note Theme */
+body[data-theme="sticky-note"] {
+  --text-primary: #3d3520;
+  --text-secondary: #6b5d3f;
+  --icon-color: #4a4020;
+  --accent: #d97706;
+  --accent-hover: #ea580c;
+  --gradient-start: #fffdd0;
+  --gradient-mid: #fffdd0;
+  --gradient-end: #fffdd0;
+  --glow: transparent;
+  --button-bg: rgba(234, 179, 8, 0.15);
+  --button-border: rgba(234, 179, 8, 0.3);
+  --button-hover: rgba(234, 179, 8, 0.25);
+}
+
 /* Computed colors based on theme + transparency */
 /* transparency: 0 = opaque (0.0), 100 = transparent (1.0) */
 
@@ -125,6 +141,14 @@ body[data-theme="minimal-dark"] {
   --bg-toolbar: rgba(39, 39, 42, 0.95);
   --border-color: rgba(63, 63, 70, 0.85);
   --shadow: rgba(0, 0, 0, 0.35);
+}
+
+body[data-theme="sticky-note"] {
+  --bg-primary: rgba(255, 253, 208, calc((1 - var(--transparency)) * 0.98));
+  --bg-secondary: rgba(255, 250, 180, 0.95);
+  --bg-toolbar: rgba(255, 247, 150, 0.97);
+  --border-color: rgba(230, 220, 140, 0.4);
+  --shadow: rgba(0, 0, 0, 0.08);
 }
 
 html,

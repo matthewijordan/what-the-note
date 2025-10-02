@@ -1,5 +1,5 @@
 export type Corner = "TopLeft" | "TopRight" | "BottomLeft" | "BottomRight";
-export type Theme = "liquid-glass" | "gradient-cosmic" | "minimal" | "minimal-dark";
+export type Theme = "liquid-glass" | "gradient-cosmic" | "minimal" | "minimal-dark" | "sticky-note";
 
 export interface SyncPreferences {
   markdown_enabled: boolean;

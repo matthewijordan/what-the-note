@@ -21,6 +21,7 @@ pub enum Theme {
     GradientCosmic,
     Minimal,
     MinimalDark,
+    StickyNote,
 }
 
 impl Default for Theme {
