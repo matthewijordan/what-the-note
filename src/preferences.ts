@@ -1,60 +1,70 @@
 import { PreferencesService } from "./services/preferences-service";
 import { PREFERENCE_DEFAULTS } from "./types";
-import type { Preferences } from "./types";
+import type { Preferences, SyncPreferences, SyncTestResponse } from "./types";
+import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from '@tauri-apps/api/app';
 
 let form: HTMLFormElement;
-let currentPreferences: Preferences = { ...PREFERENCE_DEFAULTS };
+let currentPreferences: Preferences = mergeWithDefaults();
 
-type PreferenceValue = Preferences[keyof Preferences];
+type PrimitivePreferenceValue = string | number | boolean | null;
+type RootPreferenceKey = Exclude<keyof Preferences, "sync">;
+type SyncPreferenceKey = keyof SyncPreferences;
+type PreferencePath = RootPreferenceKey | `sync.${SyncPreferenceKey}`;
 
 interface PreferenceBinding {
-  key: keyof Preferences;
+  path: PreferencePath;
   name: string;
-  control: "checkbox" | "text" | "range" | "radio";
+  control: "checkbox" | "text" | "range" | "radio" | "select";
   valueDisplayId?: string;
   formatDisplay?: (value: number) => string;
 }
 
 const preferenceBindings: PreferenceBinding[] = [
-  { key: "launch_on_startup", name: "launch_on_startup", control: "checkbox" },
-  { key: "show_on_launch", name: "show_on_launch", control: "checkbox" },
-  { key: "shortcut_enabled", name: "shortcut_enabled", control: "checkbox" },
-  { key: "keyboard_shortcut", name: "keyboard_shortcut", control: "text" },
+  { path: "launch_on_startup", name: "launch_on_startup", control: "checkbox" },
+  { path: "show_on_launch", name: "show_on_launch", control: "checkbox" },
+  { path: "shortcut_enabled", name: "shortcut_enabled", control: "checkbox" },
+  { path: "keyboard_shortcut", name: "keyboard_shortcut", control: "text" },
   {
-    key: "text_size",
+    path: "text_size",
     name: "text_size",
     control: "range",
     valueDisplayId: "text-size-value",
     formatDisplay: (value) => `${value}px`,
   },
-  { key: "hotcorner_enabled", name: "hotcorner_enabled", control: "checkbox" },
-  { key: "hotcorner_corner", name: "hotcorner_corner", control: "radio" },
+  { path: "hotcorner_enabled", name: "hotcorner_enabled", control: "checkbox" },
+  { path: "hotcorner_corner", name: "hotcorner_corner", control: "radio" },
   {
-    key: "hotcorner_size",
+    path: "hotcorner_size",
     name: "hotcorner_size",
     control: "range",
     valueDisplayId: "hotcorner-size-value",
     formatDisplay: (value) => `${value}px`,
   },
-  { key: "auto_focus", name: "auto_focus", control: "checkbox" },
-  { key: "hide_on_blur", name: "hide_on_blur", control: "checkbox" },
-  { key: "auto_hide_enabled", name: "auto_hide_enabled", control: "checkbox" },
+  { path: "auto_focus", name: "auto_focus", control: "checkbox" },
+  { path: "hide_on_blur", name: "hide_on_blur", control: "checkbox" },
+  { path: "auto_hide_enabled", name: "auto_hide_enabled", control: "checkbox" },
   {
-    key: "auto_hide_delay_ms",
+    path: "auto_hide_delay_ms",
     name: "auto_hide_delay_ms",
     control: "range",
     valueDisplayId: "auto-hide-delay-value",
     formatDisplay: (value) => `${value}ms`,
   },
   {
-    key: "fade_duration_ms",
+    path: "fade_duration_ms",
     name: "fade_duration_ms",
     control: "range",
     valueDisplayId: "fade-duration-value",
     formatDisplay: (value) => `${value}ms`,
   },
+  { path: "sync.markdown_enabled", name: "sync_markdown_enabled", control: "checkbox" },
+  { path: "sync.markdown_path", name: "sync_markdown_path", control: "text" },
+  { path: "sync.include_metadata", name: "sync_include_metadata", control: "checkbox" },
+  { path: "sync.apple_notes_enabled", name: "sync_apple_notes_enabled", control: "checkbox" },
+  { path: "sync.apple_notes_title", name: "sync_apple_notes_title", control: "text" },
+  { path: "sync.apple_notes_folder", name: "sync_apple_notes_folder", control: "select" },
 ];
 
 async function init() {
@@ -89,7 +99,7 @@ async function init() {
   // Load current preferences
   try {
     const preferences = await PreferencesService.get();
-    currentPreferences = { ...PREFERENCE_DEFAULTS, ...preferences };
+    currentPreferences = mergeWithDefaults(preferences);
     loadPreferencesIntoForm(currentPreferences);
   } catch (error) {
     console.error("Failed to load preferences:", error);
@@ -100,6 +110,9 @@ async function init() {
 
   // Set up auto-save on any change
   setupAutoSave();
+
+  // Set up sync test button
+  setupSyncTestButton();
 }
 
 function setupTabs() {
@@ -268,6 +281,222 @@ function setupDependentSettings() {
     autoHideEnabled.addEventListener("change", updateAutoHideSettings);
     updateAutoHideSettings(); // Set initial state
   }
+
+  const toggleSection = (checkboxId: string, sectionId: string) => {
+    const checkbox = document.getElementById(checkboxId) as HTMLInputElement | null;
+    const section = document.getElementById(sectionId);
+
+    if (!checkbox || !section) {
+      return;
+    }
+
+    const update = () => {
+      if (checkbox.checked) {
+        section.classList.remove("disabled");
+      } else {
+        section.classList.add("disabled");
+      }
+    };
+
+    checkbox.addEventListener("change", update);
+    update();
+  };
+
+  toggleSection("sync-markdown-enabled", "sync-markdown-settings");
+  toggleSection("sync-apple-notes-enabled", "sync-apple-notes-settings");
+
+  const markdownToggle = document.getElementById("sync-markdown-enabled") as HTMLInputElement | null;
+  const appleToggle = document.getElementById("sync-apple-notes-enabled") as HTMLInputElement | null;
+
+  const enforceExclusivity = (
+    toggled: HTMLInputElement,
+    counterpart: HTMLInputElement | null
+  ) => {
+    if (!counterpart) {
+      return;
+    }
+
+    if (toggled.checked && counterpart.checked) {
+      counterpart.checked = false;
+      counterpart.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  };
+
+  if (markdownToggle) {
+    markdownToggle.addEventListener("change", () => {
+      enforceExclusivity(markdownToggle, appleToggle);
+    });
+  }
+
+  if (appleToggle) {
+    appleToggle.addEventListener("change", () => {
+      enforceExclusivity(appleToggle, markdownToggle);
+      if (appleToggle.checked) {
+        const currentValue = (form.elements.namedItem("sync_apple_notes_folder") as HTMLSelectElement | null)?.value ?? null;
+        void loadAppleNotesFolders(currentValue);
+      }
+    });
+  }
+
+  if (markdownToggle) {
+    enforceExclusivity(markdownToggle, appleToggle);
+  }
+
+  if (appleToggle) {
+    enforceExclusivity(appleToggle, markdownToggle);
+  }
+}
+
+function setupSyncTestButton() {
+  const button = document.getElementById("sync-test-button") as HTMLButtonElement | null;
+  const status = document.getElementById("sync-test-status");
+
+  if (!button || !status) {
+    return;
+  }
+
+  const resetStatus = () => {
+    status.textContent = "";
+    status.className = "sync-status-message";
+  };
+
+  const markdownToggle = document.getElementById("sync-markdown-enabled") as HTMLInputElement | null;
+  const appleToggle = document.getElementById("sync-apple-notes-enabled") as HTMLInputElement | null;
+
+  const currentTargetLabel = () => {
+    if (markdownToggle?.checked) return "Markdown";
+    if (appleToggle?.checked) return "Apple Notes";
+    return null;
+  };
+
+  markdownToggle?.addEventListener("change", resetStatus);
+  appleToggle?.addEventListener("change", resetStatus);
+  const folderSelect = document.getElementById("apple-notes-folder-select") as HTMLSelectElement | null;
+  folderSelect?.addEventListener("change", resetStatus);
+
+  button.addEventListener("click", async () => {
+    const target = currentTargetLabel();
+
+    if (!target) {
+      status.textContent = "Enable a sync target before testing.";
+      status.className = "sync-status-message error";
+      return;
+    }
+
+    button.disabled = true;
+    status.textContent = `Testing ${target} sync...`;
+    status.className = "sync-status-message pending";
+
+    try {
+      const response = await invoke<SyncTestResponse>("test_sync");
+      const label = response.target ?? target;
+      status.textContent = `${label}: ${response.message}`;
+      status.className = `sync-status-message ${response.success ? "success" : "error"}`;
+    } catch (error) {
+      console.error("Failed to test sync:", error);
+      status.textContent = `Error testing sync: ${String(error)}`;
+      status.className = "sync-status-message error";
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
+async function loadAppleNotesFolders(selectedValue: string | null) {
+  const select = document.getElementById("apple-notes-folder-select") as HTMLSelectElement | null;
+  const hint = document.getElementById("apple-notes-folder-hint") as HTMLElement | null;
+  const toggle = document.getElementById("sync-apple-notes-enabled") as HTMLInputElement | null;
+
+  if (!select || !hint) {
+    return;
+  }
+
+  if (!hint.dataset.defaultText) {
+    hint.dataset.defaultText = hint.textContent ?? "";
+  }
+
+  const resetHint = () => {
+    hint.textContent = hint.dataset.defaultText ?? "";
+    hint.classList.remove("error");
+  };
+
+  if (!toggle || !toggle.checked) {
+    select.innerHTML = "";
+    const value = selectedValue ?? "";
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value || "Notes";
+    option.selected = true;
+    select.appendChild(option);
+    select.disabled = true;
+    resetHint();
+    return;
+  }
+
+  select.disabled = true;
+  hint.textContent = "Loading folders…";
+  hint.classList.remove("error");
+  select.innerHTML = "";
+
+  const loadingOption = document.createElement("option");
+  loadingOption.value = "";
+  loadingOption.textContent = "Loading folders…";
+  loadingOption.disabled = true;
+  loadingOption.selected = true;
+  select.appendChild(loadingOption);
+
+  try {
+    const folders = await invoke<string[]>("list_apple_notes_folders");
+    select.innerHTML = "";
+
+    if (folders.length === 0) {
+      const option = document.createElement("option");
+      option.value = selectedValue ?? "Notes";
+      option.textContent = option.value || "Notes";
+      option.selected = true;
+      select.appendChild(option);
+      select.disabled = true;
+      hint.textContent = "No folders returned from Apple Notes.";
+      hint.classList.add("error");
+      return;
+    }
+
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Select a folder";
+    placeholder.disabled = true;
+    select.appendChild(placeholder);
+
+    folders.forEach((folder) => {
+      const option = document.createElement("option");
+      option.value = folder;
+      option.textContent = folder;
+      if (selectedValue && folder === selectedValue) {
+        option.selected = true;
+      }
+      select.appendChild(option);
+    });
+
+    if (!selectedValue || !folders.includes(selectedValue)) {
+      placeholder.selected = false;
+      select.selectedIndex = 1;
+    }
+
+    select.disabled = false;
+    resetHint();
+  } catch (error) {
+    console.error("Failed to load Apple Notes folders:", error);
+    select.innerHTML = "";
+    const fallback = document.createElement("option");
+    const value = selectedValue ?? "Notes";
+    fallback.value = value;
+    fallback.textContent = value;
+    fallback.selected = true;
+    select.appendChild(fallback);
+    select.disabled = true;
+    hint.textContent = `Unable to load folders: ${String(error)}`;
+    hint.classList.add("error");
+  }
 }
 
 function setupShortcutRecording() {
@@ -378,16 +607,17 @@ function setupShortcutRecording() {
 
 function loadPreferencesIntoForm(preferences: Preferences) {
   applyPreferencesToForm(preferences);
+  void loadAppleNotesFolders(preferences.sync.apple_notes_folder);
 }
 
 async function savePreferences() {
   try {
     const latestPrefs = await PreferencesService.get();
-    currentPreferences = { ...PREFERENCE_DEFAULTS, ...latestPrefs } as Preferences;
+    currentPreferences = mergeWithDefaults(latestPrefs);
     const updatedPrefs = buildPreferencesFromForm(currentPreferences);
 
     await PreferencesService.update(updatedPrefs);
-    currentPreferences = updatedPrefs;
+    currentPreferences = clonePreferences(updatedPrefs);
   } catch (error) {
     console.error("Failed to save preferences:", error);
     alert("Failed to save preferences: " + error);
@@ -401,29 +631,43 @@ function applyPreferencesToForm(preferences: Preferences) {
       return;
     }
 
-    const fallback = PREFERENCE_DEFAULTS[binding.key];
-    const value = (preferences[binding.key] ?? fallback) as PreferenceValue;
+    const fallback = getDefaultValue(binding.path);
+    const value = getPreferenceValue(preferences, binding.path);
+    const effectiveValue = value ?? fallback ?? null;
 
     switch (binding.control) {
       case "checkbox": {
-        (element as HTMLInputElement).checked = Boolean(value);
+        (element as HTMLInputElement).checked = Boolean(effectiveValue);
         break;
       }
       case "text": {
         const input = element as HTMLInputElement;
-        input.value = value !== undefined ? String(value) : String(fallback ?? "");
+        if (effectiveValue === null || effectiveValue === undefined) {
+          input.value = "";
+        } else {
+          input.value = String(effectiveValue);
+        }
+        break;
+      }
+      case "select": {
+        const select = element as HTMLSelectElement;
+        if (typeof effectiveValue === "string") {
+          select.value = effectiveValue;
+        } else {
+          select.value = "";
+        }
         break;
       }
       case "range": {
         const input = element as HTMLInputElement;
-        const numericValue = resolveNumericValue(value, binding);
+        const numericValue = resolveNumericValue(effectiveValue, binding);
         input.value = String(numericValue);
         updateValueDisplay(binding, numericValue);
         break;
       }
       case "radio": {
         const radioGroup = element as RadioNodeList;
-        const targetValue = String(value ?? fallback ?? "");
+        const targetValue = String(effectiveValue ?? "");
         Array.from(radioGroup).forEach((radio) => {
           const radioInput = radio as HTMLInputElement;
           radioInput.checked = radioInput.value === targetValue;
@@ -435,8 +679,7 @@ function applyPreferencesToForm(preferences: Preferences) {
 }
 
 function buildPreferencesFromForm(base: Preferences): Preferences {
-  const updated: Preferences = { ...base };
-  const mutable = updated as Record<keyof Preferences, PreferenceValue>;
+  const updated = clonePreferences(base);
 
   preferenceBindings.forEach((binding) => {
     const element = form.elements.namedItem(binding.name);
@@ -446,21 +689,38 @@ function buildPreferencesFromForm(base: Preferences): Preferences {
 
     switch (binding.control) {
       case "checkbox": {
-        mutable[binding.key] = (element as HTMLInputElement).checked as PreferenceValue;
+        setPreferenceValue(
+          updated,
+          binding.path,
+          (element as HTMLInputElement).checked as PrimitivePreferenceValue
+        );
         break;
       }
       case "text": {
         const input = element as HTMLInputElement;
-        const fallback = PREFERENCE_DEFAULTS[binding.key];
-        const value = input.value || String(fallback ?? "");
-        mutable[binding.key] = value as PreferenceValue;
+        const fallback = getDefaultValue(binding.path);
+        let value: PrimitivePreferenceValue;
+
+        if (input.value.trim() === "") {
+          value = fallback ?? null;
+        } else {
+          value = input.value;
+        }
+
+        setPreferenceValue(updated, binding.path, value);
+        break;
+      }
+      case "select": {
+        const select = element as HTMLSelectElement;
+        const value = select.value || null;
+        setPreferenceValue(updated, binding.path, value);
         break;
       }
       case "range": {
         const input = element as HTMLInputElement;
         const numericValue = resolveNumericValue(input.value, binding);
         input.value = String(numericValue);
-        mutable[binding.key] = numericValue as PreferenceValue;
+        setPreferenceValue(updated, binding.path, numericValue as PrimitivePreferenceValue);
         break;
       }
       case "radio": {
@@ -468,8 +728,9 @@ function buildPreferencesFromForm(base: Preferences): Preferences {
         const selected = Array.from(radioGroup).find(
           (radio) => (radio as HTMLInputElement).checked
         ) as HTMLInputElement | undefined;
-        const fallback = PREFERENCE_DEFAULTS[binding.key];
-        mutable[binding.key] = (selected?.value ?? (fallback as string)) as PreferenceValue;
+        const fallback = getDefaultValue(binding.path);
+        const value = selected?.value ?? (fallback ?? "");
+        setPreferenceValue(updated, binding.path, value as PrimitivePreferenceValue);
         break;
       }
     }
@@ -479,7 +740,7 @@ function buildPreferencesFromForm(base: Preferences): Preferences {
 }
 
 function resolveNumericValue(value: unknown, binding: PreferenceBinding): number {
-  const fallback = PREFERENCE_DEFAULTS[binding.key];
+  const fallback = getDefaultValue(binding.path);
   const fallbackNumber = typeof fallback === "number" ? fallback : 0;
 
   if (typeof value === "number") {
@@ -506,6 +767,97 @@ function updateValueDisplay(binding: PreferenceBinding, value: number) {
 
   const formatter = binding.formatDisplay ?? ((val: number) => String(val));
   display.textContent = formatter(value);
+}
+
+function mergeWithDefaults(preferences?: Preferences): Preferences {
+  if (!preferences) {
+    return clonePreferences(PREFERENCE_DEFAULTS);
+  }
+
+  const merged: Preferences = {
+    ...PREFERENCE_DEFAULTS,
+    ...preferences,
+    sync: {
+      ...PREFERENCE_DEFAULTS.sync,
+      ...(preferences.sync ?? PREFERENCE_DEFAULTS.sync),
+    },
+  };
+
+  return clonePreferences(merged);
+}
+
+function clonePreferences(preferences: Preferences): Preferences {
+  return {
+    ...preferences,
+    sync: { ...preferences.sync },
+  };
+}
+
+function getPreferenceValue(
+  source: Preferences,
+  path: PreferencePath
+): PrimitivePreferenceValue | undefined {
+  return getPrimitiveValue(source, path);
+}
+
+function getDefaultValue(path: PreferencePath): PrimitivePreferenceValue | undefined {
+  return getPrimitiveValue(PREFERENCE_DEFAULTS, path);
+}
+
+function getPrimitiveValue(
+  source: Preferences,
+  path: PreferencePath
+): PrimitivePreferenceValue | undefined {
+  const segments = path.split(".");
+  let cursor: unknown = source;
+
+  for (const segment of segments) {
+    if (cursor === null || cursor === undefined) {
+      return undefined;
+    }
+
+    if (typeof cursor !== "object") {
+      return undefined;
+    }
+
+    cursor = (cursor as Record<string, unknown>)[segment];
+  }
+
+  if (
+    typeof cursor === "string" ||
+    typeof cursor === "number" ||
+    typeof cursor === "boolean" ||
+    cursor === null
+  ) {
+    return cursor;
+  }
+
+  return undefined;
+}
+
+function setPreferenceValue(
+  target: Preferences,
+  path: PreferencePath,
+  value: PrimitivePreferenceValue
+) {
+  const segments = path.split(".");
+  const lastSegment = segments.pop();
+
+  if (!lastSegment) {
+    return;
+  }
+
+  let cursor: Record<string, unknown> = target as unknown as Record<string, unknown>;
+
+  segments.forEach((segment) => {
+    if (cursor[segment] === undefined || cursor[segment] === null) {
+      cursor[segment] = {};
+    }
+
+    cursor = cursor[segment] as Record<string, unknown>;
+  });
+
+  cursor[lastSegment] = value as unknown;
 }
 
 // Start app when DOM is ready

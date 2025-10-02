@@ -26,13 +26,11 @@ impl StorageService {
             return Ok(Self::default_note());
         }
 
-        fs::read_to_string(&self.note_path)
-            .map_err(|e| format!("Failed to read note: {}", e))
+        fs::read_to_string(&self.note_path).map_err(|e| format!("Failed to read note: {}", e))
     }
 
     pub fn write_note(&self, content: &str) -> Result<(), String> {
-        fs::write(&self.note_path, content)
-            .map_err(|e| format!("Failed to write note: {}", e))
+        fs::write(&self.note_path, content).map_err(|e| format!("Failed to write note: {}", e))
     }
 
     fn default_note() -> String {

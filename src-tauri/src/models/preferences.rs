@@ -34,6 +34,31 @@ pub struct Preferences {
     pub window_y: Option<i32>,
     pub window_width: Option<u32>,
     pub window_height: Option<u32>,
+    pub sync: SyncPreferences,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SyncPreferences {
+    pub markdown_enabled: bool,
+    pub markdown_path: Option<String>,
+    pub include_metadata: bool,
+    pub apple_notes_enabled: bool,
+    pub apple_notes_title: String,
+    pub apple_notes_folder: String,
+}
+
+impl Default for SyncPreferences {
+    fn default() -> Self {
+        Self {
+            markdown_enabled: false,
+            markdown_path: None,
+            include_metadata: true,
+            apple_notes_enabled: false,
+            apple_notes_title: "What The Note".to_string(),
+            apple_notes_folder: "Notes".to_string(),
+        }
+    }
 }
 
 impl Default for Preferences {
@@ -56,6 +81,7 @@ impl Default for Preferences {
             window_y: None,
             window_width: None,
             window_height: None,
+            sync: SyncPreferences::default(),
         }
     }
 }
@@ -80,6 +106,30 @@ impl Preferences {
 
         if self.text_size < 8 || self.text_size > 32 {
             return Err("Text size must be between 8px and 32px".to_string());
+        }
+
+        self.sync.validate()?;
+
+        Ok(())
+    }
+}
+
+impl SyncPreferences {
+    pub fn is_any_enabled(&self) -> bool {
+        self.markdown_enabled || self.apple_notes_enabled
+    }
+
+    fn validate(&self) -> Result<(), String> {
+        if self.markdown_enabled && self.apple_notes_enabled {
+            return Err("Only one sync target can be enabled at a time".to_string());
+        }
+
+        if self.apple_notes_enabled && self.apple_notes_title.trim().is_empty() {
+            return Err("Apple Notes title cannot be empty".to_string());
+        }
+
+        if self.apple_notes_enabled && self.apple_notes_folder.trim().is_empty() {
+            return Err("Apple Notes folder cannot be empty".to_string());
         }
 
         Ok(())

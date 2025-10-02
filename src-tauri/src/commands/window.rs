@@ -1,5 +1,5 @@
-use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, WebviewWindow, WebviewUrl, State};
 use crate::services::preferences::PreferencesService;
+use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, State, WebviewUrl, WebviewWindow};
 
 #[tauri::command]
 pub fn toggle_window(app: AppHandle) -> Result<(), String> {
@@ -41,14 +41,19 @@ fn show_window(window: WebviewWindow, prefs_service: &PreferencesService) -> Res
     let prefs = prefs_service.get()?;
 
     // Try to restore saved position and size
-    let positioned = if let (Some(x), Some(y), Some(width), Some(height)) =
-        (prefs.window_x, prefs.window_y, prefs.window_width, prefs.window_height) {
-
+    let positioned = if let (Some(x), Some(y), Some(width), Some(height)) = (
+        prefs.window_x,
+        prefs.window_y,
+        prefs.window_width,
+        prefs.window_height,
+    ) {
         // Check if position is on-screen
         if is_position_on_screen(&window, x, y) {
-            window.set_position(PhysicalPosition::new(x, y))
+            window
+                .set_position(PhysicalPosition::new(x, y))
                 .map_err(|e| format!("Failed to set window position: {}", e))?;
-            window.set_size(PhysicalSize::new(width, height))
+            window
+                .set_size(PhysicalSize::new(width, height))
                 .map_err(|e| format!("Failed to set window size: {}", e))?;
             true
         } else {
@@ -153,8 +158,11 @@ fn is_position_on_screen(window: &WebviewWindow, x: i32, y: i32) -> bool {
             let size = monitor.size();
 
             // Check if the position is within this monitor's bounds
-            if x >= pos.x && x < pos.x + size.width as i32 &&
-               y >= pos.y && y < pos.y + size.height as i32 {
+            if x >= pos.x
+                && x < pos.x + size.width as i32
+                && y >= pos.y
+                && y < pos.y + size.height as i32
+            {
                 return true;
             }
         }
@@ -163,14 +171,19 @@ fn is_position_on_screen(window: &WebviewWindow, x: i32, y: i32) -> bool {
 }
 
 #[tauri::command]
-pub fn save_window_bounds(app: AppHandle, prefs_service: State<PreferencesService>) -> Result<(), String> {
+pub fn save_window_bounds(
+    app: AppHandle,
+    prefs_service: State<PreferencesService>,
+) -> Result<(), String> {
     let window = app
         .get_webview_window("main")
         .ok_or("Main window not found")?;
 
-    let position = window.outer_position()
+    let position = window
+        .outer_position()
         .map_err(|e| format!("Failed to get window position: {}", e))?;
-    let size = window.outer_size()
+    let size = window
+        .outer_size()
         .map_err(|e| format!("Failed to get window size: {}", e))?;
 
     let mut prefs = prefs_service.get()?;

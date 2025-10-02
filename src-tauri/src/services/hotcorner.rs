@@ -79,8 +79,7 @@ impl HotCornerService {
     }
 
     fn get_mouse_position() -> Option<(f64, f64)> {
-        let event_source =
-            CGEventSource::new(CGEventSourceStateID::CombinedSessionState).ok()?;
+        let event_source = CGEventSource::new(CGEventSourceStateID::CombinedSessionState).ok()?;
         let event = CGEvent::new(event_source).ok()?;
         let location = event.location();
         Some((location.x, location.y))

@@ -1,5 +1,14 @@
 export type Corner = "TopLeft" | "TopRight" | "BottomLeft" | "BottomRight";
 
+export interface SyncPreferences {
+  markdown_enabled: boolean;
+  markdown_path: string | null;
+  include_metadata: boolean;
+  apple_notes_enabled: boolean;
+  apple_notes_title: string;
+  apple_notes_folder: string;
+}
+
 export interface Preferences {
   show_on_launch: boolean;
   launch_on_startup: boolean;
@@ -18,6 +27,7 @@ export interface Preferences {
   window_y: number | null;
   window_width: number | null;
   window_height: number | null;
+  sync: SyncPreferences;
 }
 
 export interface WindowState {
@@ -43,4 +53,18 @@ export const PREFERENCE_DEFAULTS: Preferences = {
   window_y: null,
   window_width: null,
   window_height: null,
+  sync: {
+    markdown_enabled: false,
+    markdown_path: null,
+    include_metadata: true,
+    apple_notes_enabled: false,
+    apple_notes_title: "What The Note",
+    apple_notes_folder: "Notes",
+  },
 };
+
+export interface SyncTestResponse {
+  success: boolean;
+  target: string | null;
+  message: string;
+}

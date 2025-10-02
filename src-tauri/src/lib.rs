@@ -2,8 +2,10 @@ mod commands;
 mod models;
 mod services;
 
-use commands::{note, preferences, window};
-use services::{preferences::PreferencesService, shortcuts::ShortcutsService, storage::StorageService, tray};
+use commands::{note, preferences, sync, window};
+use services::{
+    preferences::PreferencesService, shortcuts::ShortcutsService, storage::StorageService, tray,
+};
 
 #[cfg(target_os = "macos")]
 use services::hotcorner::HotCornerService;
@@ -123,6 +125,10 @@ pub fn run() {
             note::save_note,
             preferences::get_preferences,
             preferences::update_preferences,
+            sync::trigger_sync,
+            sync::test_sync,
+            sync::check_apple_notes_permission,
+            sync::list_apple_notes_folders,
             window::toggle_window,
             window::show_window_command,
             window::hide_window_command,

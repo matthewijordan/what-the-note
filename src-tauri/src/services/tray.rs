@@ -20,11 +20,20 @@ pub fn create_tray(app: &AppHandle) -> Result<(), String> {
         .build(app)
         .map_err(|e| format!("Failed to create quit menu item: {}", e))?;
 
-    let menu = Menu::with_items(app, &[&toggle_item, &preferences_item, &check_updates_item, &quit_item])
-        .map_err(|e| format!("Failed to create menu: {}", e))?;
+    let menu = Menu::with_items(
+        app,
+        &[
+            &toggle_item,
+            &preferences_item,
+            &check_updates_item,
+            &quit_item,
+        ],
+    )
+    .map_err(|e| format!("Failed to create menu: {}", e))?;
 
     // Get the existing tray icon from config and set its menu
-    let tray = app.tray_by_id("main-tray")
+    let tray = app
+        .tray_by_id("main-tray")
         .ok_or_else(|| "Failed to get tray icon".to_string())?;
 
     tray.set_menu(Some(menu))

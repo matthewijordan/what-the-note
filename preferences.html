@@ -249,6 +249,99 @@
         animation: pulse 1.5s ease-in-out infinite;
       }
 
+      .secondary-btn {
+        padding: 8px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .secondary-btn:hover:not(:disabled) {
+        border-color: var(--accent);
+        background: var(--bg-primary);
+      }
+
+      .secondary-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .sync-description {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 16px;
+      }
+
+      .sync-section {
+        margin-bottom: 24px;
+      }
+
+      .sync-settings {
+        margin-top: 12px;
+        margin-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .sync-settings.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+
+      .sync-folder-picker {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .sync-folder-picker input[type="text"] {
+        flex: 1;
+      }
+
+      .sync-hint {
+        display: block;
+        margin-top: -4px;
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+
+      .sync-hint.error {
+        color: #d9480f;
+      }
+
+      .sync-test {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: flex-start;
+      }
+
+      .sync-status-message {
+        font-size: 12px;
+        color: var(--text-secondary);
+        min-height: 18px;
+      }
+
+      .sync-status-message.success {
+        color: #2f9e44;
+      }
+
+      .sync-status-message.error {
+        color: #d9480f;
+      }
+
+      .sync-status-message.pending {
+        color: var(--accent);
+      }
+
       @keyframes pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.7; }
@@ -504,6 +597,7 @@
       <button class="tab active" data-tab="general">General</button>
       <button class="tab" data-tab="hotcorner">Hot Corner</button>
       <button class="tab" data-tab="behavior">Behavior</button>
+      <button class="tab" data-tab="sync">Sync</button>
       <button class="tab" data-tab="about">About</button>
     </div>
 
@@ -715,6 +809,91 @@
             </div>
             <input type="range" name="fade_duration_ms" min="0" max="1000" step="50" value="300" />
             <small>Animation speed when auto-hiding (0 = instant)</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sync Tab -->
+      <div class="tab-content" data-tab-content="sync">
+        <div class="sync-test">
+          <button type="button" class="secondary-btn" id="sync-test-button">Test Sync</button>
+          <div class="sync-status-message" id="sync-test-status"></div>
+        </div>
+
+        <p class="sync-description">
+          Mirror your note into other tools. Sync targets are read-only; edits outside What The Note will be overridden.
+        </p>
+
+        <div class="sync-section">
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" name="sync_include_metadata" />
+              Include metadata header
+              <span class="info-icon">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M7 10V7M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span class="tooltip">Adds a source + timestamp banner to sync outputs where supported.</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="sync-section">
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" name="sync_markdown_enabled" id="sync-markdown-enabled" />
+              Enable Markdown sync
+              <span class="info-icon">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M7 10V7M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span class="tooltip">Creates a Markdown file you can use in Obsidian, Spotlight, or other tools.</span>
+              </span>
+            </label>
+            <small>Outputs Markdown with optional sync metadata comments.</small>
+          </div>
+
+          <div class="sync-settings disabled" id="sync-markdown-settings">
+            <div class="form-group">
+              <label>Destination folder</label>
+              <div class="sync-folder-picker">
+                <input type="text" name="sync_markdown_path" placeholder="~/Documents/Notes" />
+                <button type="button" class="secondary-btn" id="choose-markdown-folder" disabled title="Folder picker coming soon">Choose…</button>
+              </div>
+              <small class="sync-hint">Select the folder where the Markdown file should be written.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="sync-section">
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" name="sync_apple_notes_enabled" id="sync-apple-notes-enabled" />
+              Sync to Apple Notes
+              <span class="info-icon">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M7 10V7M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span class="tooltip">Maintains a read-only Apple Notes copy via AppleScript.</span>
+              </span>
+            </label>
+            <small>You’ll be prompted to grant automation access the first time sync runs.</small>
+          </div>
+
+          <div class="sync-settings disabled" id="sync-apple-notes-settings">
+            <div class="form-group">
+              <label>Note title</label>
+              <input type="text" name="sync_apple_notes_title" placeholder="What The Note" />
+            </div>
+            <div class="form-group">
+              <label>Folder</label>
+              <select name="sync_apple_notes_folder" id="apple-notes-folder-select"></select>
+              <small class="sync-hint" id="apple-notes-folder-hint">Choose a folder from Apple Notes.</small>
+            </div>
           </div>
         </div>
       </div>
