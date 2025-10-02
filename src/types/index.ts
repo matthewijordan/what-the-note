@@ -1,4 +1,5 @@
 export type Corner = "TopLeft" | "TopRight" | "BottomLeft" | "BottomRight";
+export type Theme = "liquid-glass" | "gradient-cosmic" | "minimal" | "minimal-dark";
 
 export interface SyncPreferences {
   markdown_enabled: boolean;
@@ -23,6 +24,9 @@ export interface Preferences {
   hide_on_blur: boolean;
   fade_duration_ms: number;
   text_size: number;
+  formatting_size: number;
+  theme: Theme;
+  transparency: number;
   window_x: number | null;
   window_y: number | null;
   window_width: number | null;
@@ -49,6 +53,9 @@ export const PREFERENCE_DEFAULTS: Preferences = {
   hide_on_blur: true,
   fade_duration_ms: 200,
   text_size: 14,
+  formatting_size: 100,
+  theme: "liquid-glass",
+  transparency: 10,
   window_x: null,
   window_y: null,
   window_width: null,

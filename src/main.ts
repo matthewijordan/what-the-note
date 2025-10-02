@@ -11,6 +11,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { Color, TextStyle } from "@tiptap/extension-text-style";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
+import { createIcons, icons } from "lucide";
 
 // State
 let preferences: Preferences;
@@ -93,12 +94,20 @@ async function init() {
 
   // Apply text size
   applyTextSize(preferences.text_size);
+  applyFormattingSize(preferences.formatting_size);
+
+  // Apply theme and transparency
+  applyTheme(preferences.theme);
+  applyTransparency(preferences.transparency);
 
   // Initialize preferences change listener
   await PreferencesService.initialize();
   PreferencesService.onChange((newPrefs) => {
     preferences = newPrefs;
     applyTextSize(newPrefs.text_size);
+    applyFormattingSize(newPrefs.formatting_size);
+    applyTheme(newPrefs.theme);
+    applyTransparency(newPrefs.transparency);
     updateIdleDetector();
   });
 
@@ -139,6 +148,13 @@ async function init() {
 
   // Check for updates on startup (silently)
   UpdateService.checkOnStartup();
+
+  // Initialize Lucide icons
+  initializeIcons();
+}
+
+function initializeIcons() {
+  createIcons({ icons });
 }
 
 function setupToolbar() {
@@ -435,6 +451,21 @@ function applyTextSize(size: number) {
   // Set the CSS variable that controls editor font size
   document.documentElement.style.setProperty('--editor-font-size', `${size}px`);
 }
+
+function applyFormattingSize(size: number) {
+  // Convert 50-150 to 0.5-1.5 for CSS
+  document.documentElement.style.setProperty('--formatting-scale', (size / 100).toString());
+}
+
+function applyTheme(theme: typeof preferences.theme) {
+  document.body.setAttribute('data-theme', theme);
+}
+
+function applyTransparency(transparency: number) {
+  // Convert 0-100 to 0-1 for CSS
+  document.body.style.setProperty('--transparency', (transparency / 100).toString());
+}
+
 
 let saveWindowBoundsTimeout: number | null = null;
 

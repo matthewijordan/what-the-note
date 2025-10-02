@@ -99,6 +99,16 @@
         display: block;
       }
 
+      .tab-content[data-tab-content="sync"] {
+        padding: 16px;
+      }
+
+      .tab-content[data-tab-content="sync"].active {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
       .form-group {
         margin-bottom: 16px;
       }
@@ -275,19 +285,33 @@
       .sync-description {
         font-size: 12px;
         color: var(--text-secondary);
-        margin-bottom: 16px;
+        margin: 0;
       }
 
       .sync-section {
-        margin-bottom: 24px;
+        margin: 0;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-secondary);
+        display: grid;
+        gap: 8px;
+      }
+
+      .sync-section .form-group {
+        margin-bottom: 0;
+      }
+
+      .sync-section .form-group label {
+        margin-bottom: 0;
       }
 
       .sync-settings {
-        margin-top: 12px;
-        margin-left: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
+        margin: 0;
+        display: grid;
+        gap: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--border-color);
       }
 
       .sync-settings.disabled {
@@ -317,11 +341,12 @@
       }
 
       .sync-test {
-        margin-top: 20px;
+        margin: 0;
         display: flex;
         flex-direction: column;
         gap: 6px;
         align-items: flex-start;
+        flex: 1;
       }
 
       .sync-status-message {
@@ -340,6 +365,105 @@
 
       .sync-status-message.pending {
         color: var(--accent);
+      }
+
+      .sync-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .sync-action-buttons {
+        display: flex;
+        gap: 8px;
+        margin-left: auto;
+      }
+
+      .sync-targets {
+        display: grid;
+        gap: 8px;
+      }
+
+      .sync-target {
+        transition: border-color 0.2s ease, background 0.2s ease;
+      }
+
+      .sync-target-header {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .sync-target-title {
+        font-size: 13px;
+        color: var(--text-primary);
+      }
+
+      .sync-target-subtitle {
+        display: block;
+        font-size: 11px;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .sync-target-description {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .sync-target-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .sync-target input[type="radio"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--accent);
+        cursor: pointer;
+      }
+
+      .sync-target:not(.selected) .sync-settings {
+        display: none;
+      }
+
+      .sync-target.selected {
+        border-color: var(--accent);
+        background: rgba(0, 122, 255, 0.08);
+      }
+
+      .sync-target.selected .sync-target-title {
+        color: var(--accent);
+      }
+
+      .select-wrapper {
+        position: relative;
+      }
+
+      .select-wrapper::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        width: 8px;
+        height: 8px;
+        border-right: 1.5px solid var(--text-secondary);
+        border-bottom: 1.5px solid var(--text-secondary);
+        transform: translateY(-50%) rotate(45deg);
+        pointer-events: none;
+      }
+
+      .select-wrapper select {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        padding-right: 28px;
+        background: var(--bg-secondary);
       }
 
       @keyframes pulse {
@@ -595,6 +719,7 @@
   <body>
     <div class="tabs">
       <button class="tab active" data-tab="general">General</button>
+      <button class="tab" data-tab="visual">Visual</button>
       <button class="tab" data-tab="hotcorner">Hot Corner</button>
       <button class="tab" data-tab="behavior">Behavior</button>
       <button class="tab" data-tab="sync">Sync</button>
@@ -656,32 +781,100 @@
           </div>
           <small id="shortcut-hint">Click "Record" and press your desired key combination</small>
         </div>
+      </div>
 
-        <div class="group-divider"></div>
-
+      <!-- Visual Tab -->
+      <div class="tab-content" data-tab-content="visual">
         <div class="form-group">
           <label>
-            Text Size
+            Theme
             <span class="info-icon">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
                 <path d="M7 10V7M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
-              <span class="tooltip">Adjust the base font size for the note editor (8-32px). Does not affect stored text data.</span>
+              <span class="tooltip">Choose your visual style for the note window.</span>
             </span>
           </label>
-          <div class="slider-container">
-            <input
-              type="range"
-              name="text_size"
-              id="text-size"
-              min="8"
-              max="32"
-              step="1"
-              value="14"
-            />
-            <span class="slider-value" id="text-size-value">14px</span>
+          <div class="select-wrapper">
+            <select name="theme" id="theme-select">
+              <option value="liquid-glass">Liquid Glass</option>
+              <option value="gradient-cosmic">Gradient Cosmic</option>
+              <option value="minimal">Minimal Light</option>
+              <option value="minimal-dark">Minimal Dark</option>
+            </select>
           </div>
+        </div>
+
+        <div class="group-divider"></div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>
+              Transparency
+              <span class="info-icon">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M7 10V7M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span class="tooltip">Adjust window transparency (all themes). 0% is fully opaque, 100% is fully transparent.</span>
+              </span>
+            </span>
+            <span class="slider-value" id="transparency-value">10%</span>
+          </div>
+          <input type="range" name="transparency" id="transparency-slider" min="0" max="100" step="5" value="10" />
+        </div>
+
+        <div class="group-divider"></div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>
+              Text Size
+              <span class="info-icon">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M7 10V7M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span class="tooltip">Adjust the base font size for the note editor (8-32px). Does not affect stored text data.</span>
+              </span>
+            </span>
+            <span class="slider-value" id="text-size-visual-value">14px</span>
+          </div>
+          <input
+            type="range"
+            name="text_size_visual"
+            id="text-size-visual"
+            min="8"
+            max="32"
+            step="1"
+            value="14"
+          />
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>
+              Formatting Panel Size
+              <span class="info-icon">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M7 10V7M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span class="tooltip">Adjust the size of formatting toolbar buttons and icons (50-150%).</span>
+              </span>
+            </span>
+            <span class="slider-value" id="formatting-size-value">100%</span>
+          </div>
+          <input
+            type="range"
+            name="formatting_size"
+            id="formatting-size"
+            min="50"
+            max="150"
+            step="5"
+            value="100"
+          />
         </div>
       </div>
 
@@ -815,9 +1008,14 @@
 
       <!-- Sync Tab -->
       <div class="tab-content" data-tab-content="sync">
-        <div class="sync-test">
-          <button type="button" class="secondary-btn" id="sync-test-button">Test Sync</button>
-          <div class="sync-status-message" id="sync-test-status"></div>
+        <div class="sync-actions">
+          <div class="sync-test">
+            <div class="sync-status-message" id="sync-test-status"></div>
+          </div>
+          <div class="sync-action-buttons">
+            <button type="button" class="secondary-btn" id="sync-save-button">Save</button>
+            <button type="button" class="secondary-btn" id="sync-save-test-button">Save and Test</button>
+          </div>
         </div>
 
         <p class="sync-description">
@@ -840,59 +1038,58 @@
           </div>
         </div>
 
-        <div class="sync-section">
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input type="checkbox" name="sync_markdown_enabled" id="sync-markdown-enabled" />
-              Enable Markdown sync
-              <span class="info-icon">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
-                  <path d="M7 10V7M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-                <span class="tooltip">Creates a Markdown file you can use in Obsidian, Spotlight, or other tools.</span>
-              </span>
+        <div class="sync-targets" data-sync-targets>
+          <div class="sync-section sync-target" id="sync-target-none" data-target="none">
+            <label class="sync-target-header">
+              <input type="radio" name="sync_target" value="none" />
+              <span class="sync-target-title">No external sync</span>
             </label>
-            <small>Outputs Markdown with optional sync metadata comments.</small>
+            <p class="sync-target-description">Keep everything inside What The Note for now.</p>
           </div>
 
-          <div class="sync-settings disabled" id="sync-markdown-settings">
-            <div class="form-group">
-              <label>Destination folder</label>
-              <div class="sync-folder-picker">
-                <input type="text" name="sync_markdown_path" placeholder="~/Documents/Notes" />
-                <button type="button" class="secondary-btn" id="choose-markdown-folder" disabled title="Folder picker coming soon">Choose…</button>
+          <div class="sync-section sync-target" id="sync-target-markdown" data-target="markdown">
+            <label class="sync-target-header">
+              <input type="radio" name="sync_target" value="markdown" />
+              <div class="sync-target-text">
+                <span class="sync-target-title">Markdown file</span>
+                <span class="sync-target-subtitle">Great for Obsidian, Spotlight, or git backups.</span>
               </div>
-              <small class="sync-hint">Select the folder where the Markdown file should be written.</small>
-            </div>
-          </div>
-        </div>
-
-        <div class="sync-section">
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input type="checkbox" name="sync_apple_notes_enabled" id="sync-apple-notes-enabled" />
-              Sync to Apple Notes
-              <span class="info-icon">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
-                  <path d="M7 10V7M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-                <span class="tooltip">Maintains a read-only Apple Notes copy via AppleScript.</span>
-              </span>
             </label>
-            <small>You’ll be prompted to grant automation access the first time sync runs.</small>
+
+            <div class="sync-settings" id="sync-markdown-settings">
+              <div class="form-group">
+                <label>Destination folder</label>
+                <div class="sync-folder-picker">
+                  <input type="text" name="sync_markdown_path" placeholder="~/Documents/Notes" />
+                  <button type="button" class="secondary-btn" id="choose-markdown-folder" disabled data-lock-disabled="true" title="Folder picker coming soon">Choose…</button>
+                </div>
+                <small class="sync-hint">Select the folder where the Markdown file should live.</small>
+              </div>
+            </div>
           </div>
 
-          <div class="sync-settings disabled" id="sync-apple-notes-settings">
-            <div class="form-group">
-              <label>Note title</label>
-              <input type="text" name="sync_apple_notes_title" placeholder="What The Note" />
-            </div>
-            <div class="form-group">
-              <label>Folder</label>
-              <select name="sync_apple_notes_folder" id="apple-notes-folder-select"></select>
-              <small class="sync-hint" id="apple-notes-folder-hint">Choose a folder from Apple Notes.</small>
+          <div class="sync-section sync-target" id="sync-target-apple-notes" data-target="apple_notes">
+            <label class="sync-target-header">
+              <input type="radio" name="sync_target" value="apple_notes" />
+              <div class="sync-target-text">
+                <span class="sync-target-title">Apple Notes</span>
+                <span class="sync-target-subtitle">Keeps a read-only copy in your chosen Notes folder.</span>
+              </div>
+            </label>
+
+            <div class="sync-settings" id="sync-apple-notes-settings">
+              <div class="form-group">
+                <label>Note title</label>
+                <input type="text" name="sync_apple_notes_title" placeholder="What The Note" />
+              </div>
+              <div class="form-group">
+                <label>Folder</label>
+                <div class="select-wrapper">
+                  <select name="sync_apple_notes_folder" id="apple-notes-folder-select"></select>
+                </div>
+                <small class="sync-hint" id="apple-notes-folder-hint">Choose a folder from Apple Notes.</small>
+              </div>
+              <small class="sync-hint">You’ll be prompted for automation access the first time sync runs.</small>
             </div>
           </div>
         </div>

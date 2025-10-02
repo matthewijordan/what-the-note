@@ -12,6 +12,7 @@ type PrimitivePreferenceValue = string | number | boolean | null;
 type RootPreferenceKey = Exclude<keyof Preferences, "sync">;
 type SyncPreferenceKey = keyof SyncPreferences;
 type PreferencePath = RootPreferenceKey | `sync.${SyncPreferenceKey}`;
+type SyncTargetValue = "none" | "markdown" | "apple_notes";
 
 interface PreferenceBinding {
   path: PreferencePath;
@@ -32,6 +33,28 @@ const preferenceBindings: PreferenceBinding[] = [
     control: "range",
     valueDisplayId: "text-size-value",
     formatDisplay: (value) => `${value}px`,
+  },
+  {
+    path: "text_size",
+    name: "text_size_visual",
+    control: "range",
+    valueDisplayId: "text-size-visual-value",
+    formatDisplay: (value) => `${value}px`,
+  },
+  {
+    path: "formatting_size",
+    name: "formatting_size",
+    control: "range",
+    valueDisplayId: "formatting-size-value",
+    formatDisplay: (value) => `${value}%`,
+  },
+  { path: "theme", name: "theme", control: "select" },
+  {
+    path: "transparency",
+    name: "transparency",
+    control: "range",
+    valueDisplayId: "transparency-value",
+    formatDisplay: (value) => `${value}%`,
   },
   { path: "hotcorner_enabled", name: "hotcorner_enabled", control: "checkbox" },
   { path: "hotcorner_corner", name: "hotcorner_corner", control: "radio" },
@@ -59,10 +82,8 @@ const preferenceBindings: PreferenceBinding[] = [
     valueDisplayId: "fade-duration-value",
     formatDisplay: (value) => `${value}ms`,
   },
-  { path: "sync.markdown_enabled", name: "sync_markdown_enabled", control: "checkbox" },
   { path: "sync.markdown_path", name: "sync_markdown_path", control: "text" },
   { path: "sync.include_metadata", name: "sync_include_metadata", control: "checkbox" },
-  { path: "sync.apple_notes_enabled", name: "sync_apple_notes_enabled", control: "checkbox" },
   { path: "sync.apple_notes_title", name: "sync_apple_notes_title", control: "text" },
   { path: "sync.apple_notes_folder", name: "sync_apple_notes_folder", control: "select" },
 ];
@@ -109,10 +130,9 @@ async function init() {
   setupDependentSettings();
 
   // Set up auto-save on any change
+  setupSyncTargetControls();
   setupAutoSave();
-
-  // Set up sync test button
-  setupSyncTestButton();
+  setupSyncActions();
 }
 
 function setupTabs() {
@@ -151,6 +171,120 @@ function setupCoffeeLink() {
       }
     });
   }
+}
+
+function setupSyncTargetControls() {
+  const targetSections = Array.from(
+    document.querySelectorAll<HTMLElement>(".sync-target")
+  );
+  if (targetSections.length === 0) {
+    return;
+  }
+
+  const radios = getSyncTargetRadios();
+  if (!radios) {
+    return;
+  }
+
+  const status = document.getElementById("sync-test-status");
+
+  const updateSelection = (triggerLoad: boolean) => {
+    const selected = getSelectedSyncTarget();
+
+    targetSections.forEach((section) => {
+      const matches = section.dataset.target === selected;
+      section.classList.toggle("selected", matches);
+
+      const interactiveElements = section.querySelectorAll<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLButtonElement
+      >("input, select, textarea, button");
+
+      interactiveElements.forEach((element) => {
+        if ((element as HTMLInputElement).type === "radio") {
+          return;
+        }
+
+        if (!matches) {
+          element.disabled = true;
+          return;
+        }
+
+        const lockDisabled = (element as HTMLElement).dataset.lockDisabled === "true";
+        if (lockDisabled) {
+          return;
+        }
+
+        element.disabled = false;
+      });
+    });
+
+    if (status) {
+      status.textContent = "";
+      status.className = "sync-status-message";
+    }
+
+    if (selected === "apple_notes" && triggerLoad) {
+      const currentValue = (
+        form.elements.namedItem("sync_apple_notes_folder") as HTMLSelectElement | null
+      )?.value ?? null;
+      void loadAppleNotesFolders(currentValue);
+    }
+
+    if (selected !== "apple_notes") {
+      const select = document.getElementById(
+        "apple-notes-folder-select"
+      ) as HTMLSelectElement | null;
+      if (select) {
+        select.disabled = true;
+      }
+    }
+  };
+
+  Array.from(radios).forEach((radio) => {
+    radio.addEventListener("change", () => {
+      updateSelection(true);
+    });
+  });
+
+  updateSelection(false);
+}
+
+function getSyncTargetRadios(): RadioNodeList | null {
+  const element = form.elements.namedItem("sync_target");
+  return (element as RadioNodeList | null) ?? null;
+}
+
+function getSelectedSyncTarget(): SyncTargetValue {
+  const radios = getSyncTargetRadios();
+  if (!radios) {
+    return "none";
+  }
+
+  const selected = Array.from(radios).find(
+    (radio) => (radio as HTMLInputElement).checked
+  ) as HTMLInputElement | undefined;
+
+  if (!selected) {
+    return "none";
+  }
+
+  if (selected.value === "markdown" || selected.value === "apple_notes") {
+    return selected.value;
+  }
+
+  return "none";
+}
+
+function setSelectedSyncTarget(target: SyncTargetValue) {
+  const radios = getSyncTargetRadios();
+  if (!radios) {
+    return;
+  }
+
+  Array.from(radios).forEach((radio) => {
+    const input = radio as HTMLInputElement;
+    input.checked = input.value === target;
+  });
 }
 
 function setupTooltips() {
@@ -223,6 +357,11 @@ function setupAutoSave() {
   const inputs = form.querySelectorAll("input, select, textarea");
 
   inputs.forEach((input) => {
+    const insideSyncTab = (input as HTMLElement).closest('[data-tab-content="sync"]');
+    if (insideSyncTab) {
+      return;
+    }
+
     // Use 'change' event for immediate save when value changes
     input.addEventListener("change", async () => {
       await savePreferences();
@@ -282,132 +421,93 @@ function setupDependentSettings() {
     updateAutoHideSettings(); // Set initial state
   }
 
-  const toggleSection = (checkboxId: string, sectionId: string) => {
-    const checkbox = document.getElementById(checkboxId) as HTMLInputElement | null;
-    const section = document.getElementById(sectionId);
-
-    if (!checkbox || !section) {
-      return;
-    }
-
-    const update = () => {
-      if (checkbox.checked) {
-        section.classList.remove("disabled");
-      } else {
-        section.classList.add("disabled");
-      }
-    };
-
-    checkbox.addEventListener("change", update);
-    update();
-  };
-
-  toggleSection("sync-markdown-enabled", "sync-markdown-settings");
-  toggleSection("sync-apple-notes-enabled", "sync-apple-notes-settings");
-
-  const markdownToggle = document.getElementById("sync-markdown-enabled") as HTMLInputElement | null;
-  const appleToggle = document.getElementById("sync-apple-notes-enabled") as HTMLInputElement | null;
-
-  const enforceExclusivity = (
-    toggled: HTMLInputElement,
-    counterpart: HTMLInputElement | null
-  ) => {
-    if (!counterpart) {
-      return;
-    }
-
-    if (toggled.checked && counterpart.checked) {
-      counterpart.checked = false;
-      counterpart.dispatchEvent(new Event("change", { bubbles: true }));
-    }
-  };
-
-  if (markdownToggle) {
-    markdownToggle.addEventListener("change", () => {
-      enforceExclusivity(markdownToggle, appleToggle);
-    });
-  }
-
-  if (appleToggle) {
-    appleToggle.addEventListener("change", () => {
-      enforceExclusivity(appleToggle, markdownToggle);
-      if (appleToggle.checked) {
-        const currentValue = (form.elements.namedItem("sync_apple_notes_folder") as HTMLSelectElement | null)?.value ?? null;
-        void loadAppleNotesFolders(currentValue);
-      }
-    });
-  }
-
-  if (markdownToggle) {
-    enforceExclusivity(markdownToggle, appleToggle);
-  }
-
-  if (appleToggle) {
-    enforceExclusivity(appleToggle, markdownToggle);
-  }
 }
 
-function setupSyncTestButton() {
-  const button = document.getElementById("sync-test-button") as HTMLButtonElement | null;
+function setupSyncActions() {
+  const saveButton = document.getElementById("sync-save-button") as HTMLButtonElement | null;
+  const saveAndTestButton = document.getElementById("sync-save-test-button") as HTMLButtonElement | null;
   const status = document.getElementById("sync-test-status");
 
-  if (!button || !status) {
+  if (!saveButton || !saveAndTestButton || !status) {
     return;
   }
 
-  const resetStatus = () => {
+  const clearStatus = () => {
     status.textContent = "";
     status.className = "sync-status-message";
   };
 
-  const markdownToggle = document.getElementById("sync-markdown-enabled") as HTMLInputElement | null;
-  const appleToggle = document.getElementById("sync-apple-notes-enabled") as HTMLInputElement | null;
+  const updateStatus = (message: string, variant: "pending" | "success" | "error") => {
+    status.textContent = message;
+    status.className = `sync-status-message ${variant}`;
+  };
 
-  const currentTargetLabel = () => {
-    if (markdownToggle?.checked) return "Markdown";
-    if (appleToggle?.checked) return "Apple Notes";
+  const getCurrentTargetLabel = (): string | null => {
+    const target = getSelectedSyncTarget();
+    if (target === "markdown") return "Markdown";
+    if (target === "apple_notes") return "Apple Notes";
     return null;
   };
 
-  markdownToggle?.addEventListener("change", resetStatus);
-  appleToggle?.addEventListener("change", resetStatus);
-  const folderSelect = document.getElementById("apple-notes-folder-select") as HTMLSelectElement | null;
-  folderSelect?.addEventListener("change", resetStatus);
+  const syncInputs = document.querySelectorAll<HTMLElement>(
+    '[data-tab-content="sync"] input, [data-tab-content="sync"] select, [data-tab-content="sync"] textarea'
+  );
 
-  button.addEventListener("click", async () => {
-    const target = currentTargetLabel();
+  syncInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      clearStatus();
+    });
+  });
 
-    if (!target) {
-      status.textContent = "Enable a sync target before testing.";
-      status.className = "sync-status-message error";
-      return;
-    }
-
-    button.disabled = true;
-    status.textContent = `Testing ${target} sync...`;
-    status.className = "sync-status-message pending";
+  const handleSave = async ({ alsoTest }: { alsoTest: boolean }) => {
+    saveButton.disabled = true;
+    saveAndTestButton.disabled = true;
 
     try {
+      await savePreferences();
+
+      if (!alsoTest) {
+        updateStatus("Sync preferences saved", "success");
+        return;
+      }
+
+      const targetLabel = getCurrentTargetLabel();
+      if (!targetLabel) {
+        updateStatus("Select a sync target before testing.", "error");
+        return;
+      }
+
+      updateStatus(`Saving and testing ${targetLabel}...`, "pending");
+
       const response = await invoke<SyncTestResponse>("test_sync");
-      const label = response.target ?? target;
-      status.textContent = `${label}: ${response.message}`;
-      status.className = `sync-status-message ${response.success ? "success" : "error"}`;
+      const label = response.target ?? targetLabel;
+      updateStatus(`${label}: ${response.message}`, response.success ? "success" : "error");
     } catch (error) {
-      console.error("Failed to test sync:", error);
-      status.textContent = `Error testing sync: ${String(error)}`;
-      status.className = "sync-status-message error";
+      console.error("Failed to update sync preferences:", error);
+      updateStatus(`Failed: ${String(error)}`, "error");
     } finally {
-      button.disabled = false;
+      saveButton.disabled = false;
+      saveAndTestButton.disabled = false;
     }
+  };
+
+  saveButton.addEventListener("click", () => {
+    void handleSave({ alsoTest: false });
+  });
+
+  saveAndTestButton.addEventListener("click", () => {
+    void handleSave({ alsoTest: true });
   });
 }
 
 async function loadAppleNotesFolders(selectedValue: string | null) {
   const select = document.getElementById("apple-notes-folder-select") as HTMLSelectElement | null;
   const hint = document.getElementById("apple-notes-folder-hint") as HTMLElement | null;
-  const toggle = document.getElementById("sync-apple-notes-enabled") as HTMLInputElement | null;
+  const appleRadio = document.querySelector(
+    'input[name="sync_target"][value="apple_notes"]'
+  ) as HTMLInputElement | null;
 
-  if (!select || !hint) {
+  if (!select || !hint || !appleRadio) {
     return;
   }
 
@@ -420,7 +520,7 @@ async function loadAppleNotesFolders(selectedValue: string | null) {
     hint.classList.remove("error");
   };
 
-  if (!toggle || !toggle.checked) {
+  if (!appleRadio.checked) {
     select.innerHTML = "";
     const value = selectedValue ?? "";
     const option = document.createElement("option");
@@ -676,6 +776,14 @@ function applyPreferencesToForm(preferences: Preferences) {
       }
     }
   });
+
+  const target: SyncTargetValue = preferences.sync.apple_notes_enabled
+    ? "apple_notes"
+    : preferences.sync.markdown_enabled
+    ? "markdown"
+    : "none";
+
+  setSelectedSyncTarget(target);
 }
 
 function buildPreferencesFromForm(base: Preferences): Preferences {
@@ -735,6 +843,10 @@ function buildPreferencesFromForm(base: Preferences): Preferences {
       }
     }
   });
+
+  const selectedTarget = getSelectedSyncTarget();
+  updated.sync.markdown_enabled = selectedTarget === "markdown";
+  updated.sync.apple_notes_enabled = selectedTarget === "apple_notes";
 
   return updated;
 }

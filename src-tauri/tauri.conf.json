@@ -18,6 +18,8 @@
         "title": "What The Note",
         "width": 400,
         "height": 500,
+        "minWidth": 320,
+        "minHeight": 240,
         "visible": false,
         "decorations": false,
         "transparent": true,

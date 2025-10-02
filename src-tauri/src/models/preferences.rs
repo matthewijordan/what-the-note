@@ -14,6 +14,21 @@ impl Default for Corner {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+pub enum Theme {
+    LiquidGlass,
+    GradientCosmic,
+    Minimal,
+    MinimalDark,
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        Theme::LiquidGlass
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Preferences {
@@ -30,6 +45,9 @@ pub struct Preferences {
     pub hide_on_blur: bool,
     pub fade_duration_ms: u32,
     pub text_size: u32,
+    pub formatting_size: u32,
+    pub theme: Theme,
+    pub transparency: u32,
     pub window_x: Option<i32>,
     pub window_y: Option<i32>,
     pub window_width: Option<u32>,
@@ -77,6 +95,9 @@ impl Default for Preferences {
             hide_on_blur: true,
             fade_duration_ms: 200,
             text_size: 14,
+            formatting_size: 100,
+            theme: Theme::default(),
+            transparency: 10,
             window_x: None,
             window_y: None,
             window_width: None,
@@ -106,6 +127,14 @@ impl Preferences {
 
         if self.text_size < 8 || self.text_size > 32 {
             return Err("Text size must be between 8px and 32px".to_string());
+        }
+
+        if self.formatting_size < 50 || self.formatting_size > 150 {
+            return Err("Formatting size must be between 50% and 150%".to_string());
+        }
+
+        if self.transparency > 100 {
+            return Err("Transparency must be between 0 and 100".to_string());
         }
 
         self.sync.validate()?;
