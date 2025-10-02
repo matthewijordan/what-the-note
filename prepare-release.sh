@@ -130,7 +130,7 @@ echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━�
 
 cd src-tauri/target/universal-apple-darwin/release/bundle/macos
 rm -f "What.The.Note.app.tar.gz"
-tar -czf "What.The.Note.app.tar.gz" "What The Note.app"
+COPYFILE_DISABLE=1 tar -czf "What.The.Note.app.tar.gz" "What The Note.app"
 echo -e "${GREEN}✓ Created What.The.Note.app.tar.gz${NC}"
 cd ../../../../../..
 
