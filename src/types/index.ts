@@ -2,6 +2,7 @@ export type Corner = "TopLeft" | "TopRight" | "BottomLeft" | "BottomRight";
 
 export interface Preferences {
   show_on_launch: boolean;
+  launch_on_startup: boolean;
   hotcorner_enabled: boolean;
   hotcorner_corner: Corner;
   hotcorner_size: number;
@@ -23,3 +24,23 @@ export interface WindowState {
   isVisible: boolean;
   lastInteractionTime: number;
 }
+
+export const PREFERENCE_DEFAULTS: Preferences = {
+  show_on_launch: false,
+  launch_on_startup: true,
+  hotcorner_enabled: true,
+  hotcorner_corner: "BottomRight",
+  hotcorner_size: 10,
+  shortcut_enabled: true,
+  keyboard_shortcut: "Alt+Command+N",
+  auto_focus: true,
+  auto_hide_enabled: false,
+  auto_hide_delay_ms: 1500,
+  hide_on_blur: true,
+  fade_duration_ms: 200,
+  text_size: 14,
+  window_x: null,
+  window_y: null,
+  window_width: null,
+  window_height: null,
+};

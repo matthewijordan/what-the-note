@@ -1,9 +1,61 @@
 import { PreferencesService } from "./services/preferences-service";
+import { PREFERENCE_DEFAULTS } from "./types";
 import type { Preferences } from "./types";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from '@tauri-apps/api/app';
 
 let form: HTMLFormElement;
+let currentPreferences: Preferences = { ...PREFERENCE_DEFAULTS };
+
+type PreferenceValue = Preferences[keyof Preferences];
+
+interface PreferenceBinding {
+  key: keyof Preferences;
+  name: string;
+  control: "checkbox" | "text" | "range" | "radio";
+  valueDisplayId?: string;
+  formatDisplay?: (value: number) => string;
+}
+
+const preferenceBindings: PreferenceBinding[] = [
+  { key: "launch_on_startup", name: "launch_on_startup", control: "checkbox" },
+  { key: "show_on_launch", name: "show_on_launch", control: "checkbox" },
+  { key: "shortcut_enabled", name: "shortcut_enabled", control: "checkbox" },
+  { key: "keyboard_shortcut", name: "keyboard_shortcut", control: "text" },
+  {
+    key: "text_size",
+    name: "text_size",
+    control: "range",
+    valueDisplayId: "text-size-value",
+    formatDisplay: (value) => `${value}px`,
+  },
+  { key: "hotcorner_enabled", name: "hotcorner_enabled", control: "checkbox" },
+  { key: "hotcorner_corner", name: "hotcorner_corner", control: "radio" },
+  {
+    key: "hotcorner_size",
+    name: "hotcorner_size",
+    control: "range",
+    valueDisplayId: "hotcorner-size-value",
+    formatDisplay: (value) => `${value}px`,
+  },
+  { key: "auto_focus", name: "auto_focus", control: "checkbox" },
+  { key: "hide_on_blur", name: "hide_on_blur", control: "checkbox" },
+  { key: "auto_hide_enabled", name: "auto_hide_enabled", control: "checkbox" },
+  {
+    key: "auto_hide_delay_ms",
+    name: "auto_hide_delay_ms",
+    control: "range",
+    valueDisplayId: "auto-hide-delay-value",
+    formatDisplay: (value) => `${value}ms`,
+  },
+  {
+    key: "fade_duration_ms",
+    name: "fade_duration_ms",
+    control: "range",
+    valueDisplayId: "fade-duration-value",
+    formatDisplay: (value) => `${value}ms`,
+  },
+];
 
 async function init() {
   form = document.getElementById("prefs-form") as HTMLFormElement;
@@ -37,7 +89,8 @@ async function init() {
   // Load current preferences
   try {
     const preferences = await PreferencesService.get();
-    loadPreferencesIntoForm(preferences);
+    currentPreferences = { ...PREFERENCE_DEFAULTS, ...preferences };
+    loadPreferencesIntoForm(currentPreferences);
   } catch (error) {
     console.error("Failed to load preferences:", error);
   }
@@ -137,53 +190,19 @@ function setupTooltips() {
 }
 
 function setupSliders() {
-  // Hot corner size slider
-  const hotcornerSizeSlider = form.elements.namedItem(
-    "hotcorner_size"
-  ) as HTMLInputElement;
-  const hotcornerSizeValue = document.getElementById("hotcorner-size-value");
+  preferenceBindings
+    .filter((binding) => binding.control === "range")
+    .forEach((binding) => {
+      const input = form.elements.namedItem(binding.name) as HTMLInputElement | null;
+      if (!input) {
+        return;
+      }
 
-  if (hotcornerSizeSlider && hotcornerSizeValue) {
-    hotcornerSizeSlider.addEventListener("input", () => {
-      hotcornerSizeValue.textContent = `${hotcornerSizeSlider.value}px`;
+      input.addEventListener("input", () => {
+        const value = resolveNumericValue(input.value, binding);
+        updateValueDisplay(binding, value);
+      });
     });
-  }
-
-  // Auto hide delay slider
-  const autoHideDelaySlider = form.elements.namedItem(
-    "auto_hide_delay_ms"
-  ) as HTMLInputElement;
-  const autoHideDelayValue = document.getElementById("auto-hide-delay-value");
-
-  if (autoHideDelaySlider && autoHideDelayValue) {
-    autoHideDelaySlider.addEventListener("input", () => {
-      autoHideDelayValue.textContent = `${autoHideDelaySlider.value}ms`;
-    });
-  }
-
-  // Fade duration slider
-  const fadeDurationSlider = form.elements.namedItem(
-    "fade_duration_ms"
-  ) as HTMLInputElement;
-  const fadeDurationValue = document.getElementById("fade-duration-value");
-
-  if (fadeDurationSlider && fadeDurationValue) {
-    fadeDurationSlider.addEventListener("input", () => {
-      fadeDurationValue.textContent = `${fadeDurationSlider.value}ms`;
-    });
-  }
-
-  // Text size slider
-  const textSizeSlider = form.elements.namedItem(
-    "text_size"
-  ) as HTMLInputElement;
-  const textSizeValue = document.getElementById("text-size-value");
-
-  if (textSizeSlider && textSizeValue) {
-    textSizeSlider.addEventListener("input", () => {
-      textSizeValue.textContent = `${textSizeSlider.value}px`;
-    });
-  }
 }
 
 function setupAutoSave() {
@@ -358,138 +377,135 @@ function setupShortcutRecording() {
 }
 
 function loadPreferencesIntoForm(preferences: Preferences) {
-  (form.elements.namedItem("show_on_launch") as HTMLInputElement).checked =
-    preferences.show_on_launch;
-  (form.elements.namedItem("shortcut_enabled") as HTMLInputElement).checked =
-    preferences.shortcut_enabled;
-  (form.elements.namedItem("hotcorner_enabled") as HTMLInputElement).checked =
-    preferences.hotcorner_enabled;
-
-  // Set corner radio button
-  const cornerRadios = form.elements.namedItem(
-    "hotcorner_corner"
-  ) as RadioNodeList;
-  cornerRadios.forEach((radio) => {
-    if ((radio as HTMLInputElement).value === preferences.hotcorner_corner) {
-      (radio as HTMLInputElement).checked = true;
-    }
-  });
-
-  // Hot corner size
-  const hotcornerSizeSlider = form.elements.namedItem(
-    "hotcorner_size"
-  ) as HTMLInputElement;
-  const hotcornerSizeValue = document.getElementById("hotcorner-size-value");
-  hotcornerSizeSlider.value = preferences.hotcorner_size.toString();
-  if (hotcornerSizeValue) {
-    hotcornerSizeValue.textContent = `${preferences.hotcorner_size}px`;
-  }
-
-  (form.elements.namedItem("keyboard_shortcut") as HTMLInputElement).value =
-    preferences.keyboard_shortcut;
-  (form.elements.namedItem("auto_focus") as HTMLInputElement).checked =
-    preferences.auto_focus;
-  (form.elements.namedItem("auto_hide_enabled") as HTMLInputElement).checked =
-    preferences.auto_hide_enabled;
-
-  // Auto hide delay
-  const autoHideDelaySlider = form.elements.namedItem(
-    "auto_hide_delay_ms"
-  ) as HTMLInputElement;
-  const autoHideDelayValue = document.getElementById("auto-hide-delay-value");
-  autoHideDelaySlider.value = preferences.auto_hide_delay_ms.toString();
-  if (autoHideDelayValue) {
-    autoHideDelayValue.textContent = `${preferences.auto_hide_delay_ms}ms`;
-  }
-
-  (form.elements.namedItem("hide_on_blur") as HTMLInputElement).checked =
-    preferences.hide_on_blur;
-
-  // Fade duration
-  const fadeDurationSlider = form.elements.namedItem(
-    "fade_duration_ms"
-  ) as HTMLInputElement;
-  const fadeDurationValue = document.getElementById("fade-duration-value");
-  fadeDurationSlider.value = preferences.fade_duration_ms.toString();
-  if (fadeDurationValue) {
-    fadeDurationValue.textContent = `${preferences.fade_duration_ms}ms`;
-  }
-
-  // Text size
-  const textSizeSlider = form.elements.namedItem(
-    "text_size"
-  ) as HTMLInputElement;
-  const textSizeValue = document.getElementById("text-size-value");
-  textSizeSlider.value = preferences.text_size.toString();
-  if (textSizeValue) {
-    textSizeValue.textContent = `${preferences.text_size}px`;
-  }
+  applyPreferencesToForm(preferences);
 }
 
 async function savePreferences() {
-  // Get current preferences to preserve window bounds
-  const currentPrefs = await PreferencesService.get();
-
-  // Get selected corner radio button value
-  const cornerRadios = form.elements.namedItem(
-    "hotcorner_corner"
-  ) as RadioNodeList;
-  let selectedCorner = "TopRight";
-  cornerRadios.forEach((radio) => {
-    if ((radio as HTMLInputElement).checked) {
-      selectedCorner = (radio as HTMLInputElement).value;
-    }
-  });
-
-  const newPrefs: Preferences = {
-    show_on_launch: (
-      form.elements.namedItem("show_on_launch") as HTMLInputElement
-    ).checked,
-    hotcorner_enabled: (
-      form.elements.namedItem("hotcorner_enabled") as HTMLInputElement
-    ).checked,
-    hotcorner_corner: selectedCorner as Preferences["hotcorner_corner"],
-    hotcorner_size: parseInt(
-      (form.elements.namedItem("hotcorner_size") as HTMLInputElement).value
-    ),
-    shortcut_enabled: (
-      form.elements.namedItem("shortcut_enabled") as HTMLInputElement
-    ).checked,
-    keyboard_shortcut: (
-      form.elements.namedItem("keyboard_shortcut") as HTMLInputElement
-    ).value,
-    auto_focus: (form.elements.namedItem("auto_focus") as HTMLInputElement)
-      .checked,
-    auto_hide_enabled: (
-      form.elements.namedItem("auto_hide_enabled") as HTMLInputElement
-    ).checked,
-    auto_hide_delay_ms: parseInt(
-      (
-        form.elements.namedItem("auto_hide_delay_ms") as HTMLInputElement
-      ).value
-    ),
-    hide_on_blur: (form.elements.namedItem("hide_on_blur") as HTMLInputElement)
-      .checked,
-    fade_duration_ms: parseInt(
-      (form.elements.namedItem("fade_duration_ms") as HTMLInputElement).value
-    ),
-    text_size: parseInt(
-      (form.elements.namedItem("text_size") as HTMLInputElement).value
-    ),
-    // Preserve window bounds
-    window_x: currentPrefs.window_x,
-    window_y: currentPrefs.window_y,
-    window_width: currentPrefs.window_width,
-    window_height: currentPrefs.window_height,
-  };
-
   try {
-    await PreferencesService.update(newPrefs);
-    // Success - the main window will be notified via the preferences change listener
+    const latestPrefs = await PreferencesService.get();
+    currentPreferences = { ...PREFERENCE_DEFAULTS, ...latestPrefs } as Preferences;
+    const updatedPrefs = buildPreferencesFromForm(currentPreferences);
+
+    await PreferencesService.update(updatedPrefs);
+    currentPreferences = updatedPrefs;
   } catch (error) {
     console.error("Failed to save preferences:", error);
     alert("Failed to save preferences: " + error);
   }
+}
+
+function applyPreferencesToForm(preferences: Preferences) {
+  preferenceBindings.forEach((binding) => {
+    const element = form.elements.namedItem(binding.name);
+    if (!element) {
+      return;
+    }
+
+    const fallback = PREFERENCE_DEFAULTS[binding.key];
+    const value = (preferences[binding.key] ?? fallback) as PreferenceValue;
+
+    switch (binding.control) {
+      case "checkbox": {
+        (element as HTMLInputElement).checked = Boolean(value);
+        break;
+      }
+      case "text": {
+        const input = element as HTMLInputElement;
+        input.value = value !== undefined ? String(value) : String(fallback ?? "");
+        break;
+      }
+      case "range": {
+        const input = element as HTMLInputElement;
+        const numericValue = resolveNumericValue(value, binding);
+        input.value = String(numericValue);
+        updateValueDisplay(binding, numericValue);
+        break;
+      }
+      case "radio": {
+        const radioGroup = element as RadioNodeList;
+        const targetValue = String(value ?? fallback ?? "");
+        Array.from(radioGroup).forEach((radio) => {
+          const radioInput = radio as HTMLInputElement;
+          radioInput.checked = radioInput.value === targetValue;
+        });
+        break;
+      }
+    }
+  });
+}
+
+function buildPreferencesFromForm(base: Preferences): Preferences {
+  const updated: Preferences = { ...base };
+  const mutable = updated as Record<keyof Preferences, PreferenceValue>;
+
+  preferenceBindings.forEach((binding) => {
+    const element = form.elements.namedItem(binding.name);
+    if (!element) {
+      return;
+    }
+
+    switch (binding.control) {
+      case "checkbox": {
+        mutable[binding.key] = (element as HTMLInputElement).checked as PreferenceValue;
+        break;
+      }
+      case "text": {
+        const input = element as HTMLInputElement;
+        const fallback = PREFERENCE_DEFAULTS[binding.key];
+        const value = input.value || String(fallback ?? "");
+        mutable[binding.key] = value as PreferenceValue;
+        break;
+      }
+      case "range": {
+        const input = element as HTMLInputElement;
+        const numericValue = resolveNumericValue(input.value, binding);
+        input.value = String(numericValue);
+        mutable[binding.key] = numericValue as PreferenceValue;
+        break;
+      }
+      case "radio": {
+        const radioGroup = element as RadioNodeList;
+        const selected = Array.from(radioGroup).find(
+          (radio) => (radio as HTMLInputElement).checked
+        ) as HTMLInputElement | undefined;
+        const fallback = PREFERENCE_DEFAULTS[binding.key];
+        mutable[binding.key] = (selected?.value ?? (fallback as string)) as PreferenceValue;
+        break;
+      }
+    }
+  });
+
+  return updated;
+}
+
+function resolveNumericValue(value: unknown, binding: PreferenceBinding): number {
+  const fallback = PREFERENCE_DEFAULTS[binding.key];
+  const fallbackNumber = typeof fallback === "number" ? fallback : 0;
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : fallbackNumber;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallbackNumber;
+  }
+
+  return fallbackNumber;
+}
+
+function updateValueDisplay(binding: PreferenceBinding, value: number) {
+  if (!binding.valueDisplayId) {
+    return;
+  }
+
+  const display = document.getElementById(binding.valueDisplayId);
+  if (!display) {
+    return;
+  }
+
+  const formatter = binding.formatDisplay ?? ((val: number) => String(val));
+  display.textContent = formatter(value);
 }
 
 // Start app when DOM is ready

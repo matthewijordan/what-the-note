@@ -1,3 +1,5 @@
+#![allow(deprecated)] // cocoa crate is deprecated but still works
+
 use crate::models::preferences::Corner;
 use cocoa::appkit::NSScreen;
 use cocoa::base::nil;
@@ -70,10 +72,6 @@ impl HotCornerService {
         });
     }
 
-    pub fn stop(&self) {
-        self.is_running.store(false, Ordering::SeqCst);
-    }
-
     pub fn update_config(&self, new_corner: Corner, new_size: u32, new_enabled: bool) {
         *self.corner.lock().unwrap() = new_corner;
         *self.size.lock().unwrap() = new_size;
@@ -81,13 +79,11 @@ impl HotCornerService {
     }
 
     fn get_mouse_position() -> Option<(f64, f64)> {
-        unsafe {
-            let event_source =
-                CGEventSource::new(CGEventSourceStateID::CombinedSessionState).ok()?;
-            let event = CGEvent::new(event_source).ok()?;
-            let location = event.location();
-            Some((location.x, location.y))
-        }
+        let event_source =
+            CGEventSource::new(CGEventSourceStateID::CombinedSessionState).ok()?;
+        let event = CGEvent::new(event_source).ok()?;
+        let location = event.location();
+        Some((location.x, location.y))
     }
 
     fn get_screen_bounds() -> (f64, f64) {

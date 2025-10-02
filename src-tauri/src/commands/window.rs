@@ -129,6 +129,7 @@ pub fn open_preferences_window(app: AppHandle) -> Result<(), String> {
     .resizable(false)
     .minimizable(true)
     .closable(true)
+    .always_on_top(true)
     .center()
     .build()
     .map_err(|e| format!("Failed to create preferences window: {}", e))?;
@@ -136,6 +137,10 @@ pub fn open_preferences_window(app: AppHandle) -> Result<(), String> {
     window
         .show()
         .map_err(|e| format!("Failed to show preferences window: {}", e))?;
+
+    window
+        .set_focus()
+        .map_err(|e| format!("Failed to focus preferences window: {}", e))?;
 
     Ok(())
 }

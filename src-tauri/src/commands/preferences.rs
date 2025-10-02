@@ -2,6 +2,7 @@ use crate::models::preferences::Preferences;
 use crate::services::preferences::PreferencesService;
 use crate::services::shortcuts::ShortcutsService;
 use tauri::{AppHandle, Emitter, State};
+use tauri_plugin_autostart::ManagerExt;
 
 #[cfg(target_os = "macos")]
 use crate::services::hotcorner::HotCornerService;
@@ -46,6 +47,16 @@ pub fn update_preferences(
                 new_prefs.hotcorner_size,
                 new_prefs.hotcorner_enabled,
             );
+        }
+    }
+
+    // Update launch on startup if changed
+    if old_prefs.launch_on_startup != new_prefs.launch_on_startup {
+        let autostart_manager = app.autolaunch();
+        if new_prefs.launch_on_startup {
+            let _ = autostart_manager.enable();
+        } else {
+            let _ = autostart_manager.disable();
         }
     }
 

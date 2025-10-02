@@ -18,6 +18,7 @@ impl Default for Corner {
 #[serde(default)]
 pub struct Preferences {
     pub show_on_launch: bool,
+    pub launch_on_startup: bool,
     pub hotcorner_enabled: bool,
     pub hotcorner_corner: Corner,
     pub hotcorner_size: u32,
@@ -39,6 +40,7 @@ impl Default for Preferences {
     fn default() -> Self {
         Self {
             show_on_launch: false,
+            launch_on_startup: true,
             hotcorner_enabled: true,
             hotcorner_corner: Corner::TopRight,
             hotcorner_size: 10,

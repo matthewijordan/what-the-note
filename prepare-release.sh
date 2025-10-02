@@ -7,6 +7,11 @@ if [ -d "$HOME/.cargo/bin" ]; then
   export PATH="$HOME/.cargo/bin:$PATH"
 fi
 
+# Load notarization credentials if they exist
+if [ -f "$HOME/.tauri-env-what-the-note" ]; then
+  source "$HOME/.tauri-env-what-the-note"
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'

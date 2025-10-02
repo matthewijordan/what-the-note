@@ -1,6 +1,6 @@
 use tauri::{
     menu::{Menu, MenuItemBuilder},
-    AppHandle, Emitter, Manager,
+    AppHandle, Emitter,
 };
 
 pub fn create_tray(app: &AppHandle) -> Result<(), String> {
@@ -32,6 +32,21 @@ pub fn create_tray(app: &AppHandle) -> Result<(), String> {
 
     tray.on_menu_event(menu_handler);
 
+    // For macOS with Accessory policy, activate app on any tray interaction
+    #[cfg(target_os = "macos")]
+    #[allow(deprecated)] // cocoa crate is deprecated but still works
+    {
+        use cocoa::appkit::NSApplication;
+
+        tray.on_tray_icon_event(move |_tray_icon, _event| {
+            // Activate on any event (Enter, Click, etc)
+            unsafe {
+                let ns_app = cocoa::appkit::NSApp();
+                ns_app.activateIgnoringOtherApps_(cocoa::base::YES);
+            }
+        });
+    }
+
     Ok(())
 }
 
@@ -40,6 +55,10 @@ fn menu_handler(app: &AppHandle, event: tauri::menu::MenuEvent) {
         "toggle" => {
             if let Err(e) = app.emit("toggle-window", ()) {
                 eprintln!("Failed to emit toggle-window event: {}", e);
+            }
+            // Also emit shortcut-triggered to lock window (same behavior as keyboard shortcut)
+            if let Err(e) = app.emit("shortcut-triggered", ()) {
+                eprintln!("Failed to emit shortcut-triggered event: {}", e);
             }
         }
         "preferences" => {

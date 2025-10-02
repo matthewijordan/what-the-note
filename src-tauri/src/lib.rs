@@ -9,6 +9,7 @@ use services::{preferences::PreferencesService, shortcuts::ShortcutsService, sto
 use services::hotcorner::HotCornerService;
 
 use tauri::{Listener, Manager};
+use tauri_plugin_autostart::ManagerExt;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -18,8 +19,24 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
         .setup(|app| {
             let app_handle = app.handle().clone();
+
+            // Hide from dock and CMD+Tab (macOS only)
+            #[cfg(target_os = "macos")]
+            #[allow(deprecated)] // cocoa crate is deprecated but still works
+            {
+                use cocoa::appkit::NSApplication;
+                use cocoa::base::nil;
+                use cocoa::foundation::NSAutoreleasePool;
+
+                unsafe {
+                    let _pool = NSAutoreleasePool::new(nil);
+                    let app = cocoa::appkit::NSApp();
+                    app.setActivationPolicy_(cocoa::appkit::NSApplicationActivationPolicy::NSApplicationActivationPolicyAccessory);
+                }
+            }
 
             // Initialize services
             let storage = StorageService::new(&app_handle)
@@ -39,6 +56,14 @@ pub fn run() {
             if prefs.shortcut_enabled {
                 ShortcutsService::register(&app_handle, &prefs.keyboard_shortcut)
                     .expect("Failed to register keyboard shortcut");
+            }
+
+            // Enable or disable launch on startup
+            let autostart_manager = app.autolaunch();
+            if prefs.launch_on_startup {
+                let _ = autostart_manager.enable();
+            } else {
+                let _ = autostart_manager.disable();
             }
 
             // Set up hot corner service (macOS only)
